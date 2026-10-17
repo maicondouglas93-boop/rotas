@@ -20,11 +20,12 @@ export const ROTULO_STATUS_PARADA: Record<StatusParada, string> = {
   CANCELADA: 'Cancelada',
 };
 
+// Feminino porque o status sempre aparece ao lado do tipo: "Coleta realizada", "Entrega não realizada".
 export const ROTULO_STATUS_SERVICO: Record<StatusServico, string> = {
   PENDENTE: 'Pendente',
-  REALIZADO: 'Realizado',
-  NAO_REALIZADO: 'Não realizado',
-  CANCELADO: 'Cancelado',
+  REALIZADO: 'Realizada',
+  NAO_REALIZADO: 'Não realizada',
+  CANCELADO: 'Cancelada',
 };
 
 export const ROTULO_TIPO_SERVICO: Record<TipoServico, string> = {

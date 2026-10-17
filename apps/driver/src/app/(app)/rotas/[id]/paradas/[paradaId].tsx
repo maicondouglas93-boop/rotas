@@ -3,6 +3,7 @@ import {
   linkGoogleMaps,
   linkWaze,
   linkWhatsApp,
+  ROTULO_TIPO_OCORRENCIA,
   ROTULO_TIPO_SERVICO,
   type Servico,
   type TipoOcorrencia,
@@ -17,6 +18,7 @@ import { Aviso, Botao, Carregando, Cartao, Tela } from '../../../../../component
 import { EscolhaOcorrencia } from '../../../../../componentes/escolha-ocorrencia';
 import { Status } from '../../../../../componentes/status';
 import { cores } from '../../../../../componentes/tema';
+import { proximaParada } from '../../../../../rotas/proxima-parada';
 
 const TEXTO_CONCLUIR: Record<Servico['tipo'], string> = { COLETA: 'Coleta realizada', ENTREGA: 'Entrega concluída' };
 
@@ -29,6 +31,7 @@ export default function TelaParada() {
   const enviarComando = useEnviarComando();
   const pendentes = useFilaPendente();
   const [ocorrencia, setOcorrencia] = useState<Ocorrencia>(null);
+  const [ocorrenciaRegistrada, setOcorrenciaRegistrada] = useState<string | null>(null);
 
   if (consulta.isPending) return <Carregando />;
   const rota = consulta.data;
@@ -46,6 +49,8 @@ export default function TelaParada() {
   const ids = new Set([parada.id, ...parada.servicos.map((s) => s.id)]);
   const aguardando = pendentes.some((c) => ids.has(c.alvoId));
   const servicosPendentes = parada.servicos.filter((s) => s.status === 'PENDENTE');
+  const encerrada = parada.status === 'FINALIZADA' || parada.status === 'CANCELADA';
+  const seguinte = encerrada && rota.status === 'EM_ANDAMENTO' ? proximaParada(rota.paradas, parada.id) : undefined;
   const base = { rotaId: rota.id };
 
   const comando = (caminho: string, alvoId: string, descricao: string, corpo?: Record<string, unknown>) =>
@@ -82,6 +87,7 @@ export default function TelaParada() {
       });
     } else {
       comando(`/motorista/paradas/${parada!.id}/ocorrencias`, parada!.id, 'Ocorrência', { tipo, descricao });
+      setOcorrenciaRegistrada(`Ocorrência registrada: ${ROTULO_TIPO_OCORRENCIA[tipo]}.`);
     }
     setOcorrencia(null);
   }
@@ -98,6 +104,13 @@ export default function TelaParada() {
         <Botao key={s.id} titulo={TEXTO_CONCLUIR[s.tipo]} onPress={() => concluir(s)} />
       ))}
     </>
+  ) : seguinte ? (
+    <Botao
+      titulo={`Próxima parada: ${seguinte.nomeEmpresa}`}
+      onPress={() => router.replace(`/rotas/${rota.id}/paradas/${seguinte.id}`)}
+    />
+  ) : encerrada ? (
+    <Botao titulo="Voltar para a rota" variante="secundaria" onPress={() => router.back()} />
   ) : null;
 
   return (
@@ -105,6 +118,7 @@ export default function TelaParada() {
       <Stack.Screen options={{ title: `${parada.sequencia}. ${parada.nomeEmpresa}` }} />
       <Tela rodape={rodape}>
         <BannerConexao />
+        {ocorrenciaRegistrada ? <Aviso tom="info" texto={ocorrenciaRegistrada} /> : null}
         <Cartao>
           <Status tipo="parada" status={parada.status} />
           <Text style={estilos.nome}>{parada.nomeEmpresa}</Text>

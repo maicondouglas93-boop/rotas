@@ -1,4 +1,4 @@
-import { acoesMotoristaRota, ROTULO_TIPO_SERVICO, type Parada } from '@rotas/shared';
+import { acoesMotoristaRota, ROTULO_TIPO_SERVICO } from '@rotas/shared';
 import { Link, Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Alert, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useEnviarComando, useFilaPendente, useRota } from '../../../../api/consultas';
@@ -6,13 +6,7 @@ import { BannerConexao } from '../../../../componentes/banner-conexao';
 import { Aviso, Botao, Carregando, Tela } from '../../../../componentes/basicos';
 import { Status } from '../../../../componentes/status';
 import { ALVO_TOQUE, cores } from '../../../../componentes/tema';
-
-function proximaParada(paradas: Parada[]): Parada | undefined {
-  return (
-    paradas.find((p) => p.status === 'NO_LOCAL' || p.status === 'A_CAMINHO') ??
-    paradas.find((p) => p.status === 'PENDENTE')
-  );
-}
+import { proximaParada } from '../../../../rotas/proxima-parada';
 
 export default function TelaRota() {
   const { id } = useLocalSearchParams<{ id: string }>();
