@@ -287,6 +287,15 @@ export class AuthService {
       return { token: tokenCookie, cliente: 'painel' };
     }
 
+    // Sem cookie e sem corpo: não há sessão para renovar (o painel testa isso ao abrir).
+    if (
+      corpoBruto === undefined ||
+      corpoBruto === null ||
+      (typeof corpoBruto === 'object' && Object.keys(corpoBruto).length === 0)
+    ) {
+      throw ErroDominio.naoAutenticado();
+    }
+
     const validado = refreshAppSchema.safeParse(corpoBruto);
     if (!validado.success) {
       throw ErroDominio.validacao(validado.error.issues);

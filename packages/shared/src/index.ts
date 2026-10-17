@@ -12,3 +12,5 @@ export * from './schemas/campos.js';
 export * from './schemas/motoristas.js';
 export * from './schemas/rotas.js';
 export * from './schemas/execucao.js';
+export * from './dominio/rotulos.js';
+export * from './dominio/acoes.js';

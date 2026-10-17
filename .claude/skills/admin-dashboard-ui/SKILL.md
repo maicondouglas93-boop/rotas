@@ -53,6 +53,8 @@ apps/admin/src/
 
 Páginas autenticadas são componentes cliente com TanStack Query (o access token está em memória, ver `auth-security-lgpd`). Não use Server Actions nem Route Handlers para regra de negócio.
 
+Já existe: `lib/api.ts` (token em memória, renovação em voo único com Web Locks, nova tentativa após 401), `lib/sessao.tsx` (`useSessao`), `lib/consultas/{empresas,motoristas,rotas}.ts`, `lib/filtros-url.ts`, `components/comum/` (`CabecalhoPagina`, `ConteudoPagina`, `Vazio`, `ErroCarregamento`, `LinhasCarregando`, `Paginacao`, `StatusBadge`, `CampoBusca`, `LinksExternos`) e `components/rotas/montagem-rota.tsx`. Os componentes do shadcn usam Base UI: gatilhos recebem `render={<Button />}` (não `asChild`). `cacheComponents`/`partialPrefetching` do Next ficam desligados (painel todo no cliente). O mapa da montagem espera o ADR do provedor (`maps-route-planning`).
+
 ## Padrões
 
 ### Dados

@@ -1,14 +1,14 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { requisitar } from '@/lib/api';
+import { requisitarPublico } from '@/lib/api';
 
 type Saude = { status: 'ok'; versao: string };
 
 export function StatusApi() {
   const consulta = useQuery({
     queryKey: ['saude'],
-    queryFn: () => requisitar<Saude>('/saude/pronto'),
+    queryFn: () => requisitarPublico<Saude>('/saude/pronto'),
     refetchInterval: 30_000,
   });
 
