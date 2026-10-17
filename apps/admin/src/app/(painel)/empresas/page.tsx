@@ -68,7 +68,7 @@ function ListaEmpresas() {
       ) : (
         <>
           {/* Tabela no desktop, cartões no celular */}
-          <div className="hidden rounded-lg border md:block">
+          <div className="superficie hidden overflow-hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -109,7 +109,7 @@ function ListaEmpresas() {
           </div>
           <ul className="flex flex-col gap-2 md:hidden">
             {consulta.data.itens.map((empresa) => (
-              <li key={empresa.id} className="flex items-center justify-between gap-2 rounded-lg border p-3">
+              <li key={empresa.id} className="superficie flex items-center justify-between gap-2 p-3">
                 <Link href={`/empresas/${empresa.id}`} className="flex min-w-0 flex-col">
                   <span className="truncate font-medium">{empresa.nomeFantasia}</span>
                   <span className="truncate text-sm text-muted-foreground">

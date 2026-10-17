@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { MolduraPublica } from '@/components/comum/moldura-publica';
 import { Button } from '@/components/ui/button';
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -74,16 +75,10 @@ function FormularioLogin() {
 
 export default function PaginaLogin() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-muted/40 px-4">
-      <div className="flex w-full max-w-sm flex-col gap-6 rounded-xl border bg-background p-6 shadow-sm">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-xl font-semibold">Painel de rotas</h1>
-          <p className="text-sm text-muted-foreground">Entre com a conta de administrador.</p>
-        </div>
-        <Suspense>
-          <FormularioLogin />
-        </Suspense>
-      </div>
-    </main>
+    <MolduraPublica titulo="Entrar no painel" descricao="Use a sua conta de administrador.">
+      <Suspense>
+        <FormularioLogin />
+      </Suspense>
+    </MolduraPublica>
   );
 }

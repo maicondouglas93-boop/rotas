@@ -62,7 +62,7 @@ function ListaMotoristas() {
         )
       ) : (
         <>
-          <div className="hidden rounded-lg border md:block">
+          <div className="superficie hidden overflow-hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -93,7 +93,7 @@ function ListaMotoristas() {
           <ul className="flex flex-col gap-2 md:hidden">
             {consulta.data.itens.map((m) => (
               <li key={m.id}>
-                <Link href={`/motoristas/${m.id}`} className="flex items-center justify-between gap-2 rounded-lg border p-3">
+                <Link href={`/motoristas/${m.id}`} className="superficie flex items-center justify-between gap-2 p-3">
                   <span className="flex min-w-0 flex-col">
                     <span className="truncate font-medium">{m.nome}</span>
                     <span className="truncate text-sm text-muted-foreground">{formatarTelefone(m.telefone)}</span>

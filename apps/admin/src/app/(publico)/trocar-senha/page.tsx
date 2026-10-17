@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { MolduraPublica } from '@/components/comum/moldura-publica';
 import { Button } from '@/components/ui/button';
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -58,48 +59,43 @@ export default function PaginaTrocarSenha() {
   const obrigatoria = estado.situacao === 'autenticado' && estado.usuario.deveTrocarSenha;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-muted/40 px-4">
-      <div className="flex w-full max-w-sm flex-col gap-6 rounded-xl border bg-background p-6 shadow-sm">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-xl font-semibold">Trocar senha</h1>
-          <p className="text-sm text-muted-foreground">
-            {obrigatoria ? 'Por segurança, defina uma senha nova antes de continuar.' : 'Defina uma senha nova.'}
+    <MolduraPublica
+      titulo="Trocar senha"
+      descricao={obrigatoria ? 'Por segurança, defina uma senha nova antes de continuar.' : 'Defina uma senha nova.'}
+    >
+      <form onSubmit={form.handleSubmit(enviar)} noValidate className="flex flex-col gap-5">
+        <FieldGroup>
+          <Field data-invalid={!!form.formState.errors.senhaAtual}>
+            <FieldLabel htmlFor="senhaAtual">Senha atual</FieldLabel>
+            <Input id="senhaAtual" type="password" autoComplete="current-password" {...form.register('senhaAtual')} />
+            <FieldError errors={[form.formState.errors.senhaAtual]} />
+          </Field>
+          <Field data-invalid={!!form.formState.errors.novaSenha}>
+            <FieldLabel htmlFor="novaSenha">Nova senha</FieldLabel>
+            <Input id="novaSenha" type="password" autoComplete="new-password" {...form.register('novaSenha')} />
+            <FieldDescription>Mínimo de 8 caracteres. Evite senhas comuns e o seu e-mail.</FieldDescription>
+            <FieldError errors={[form.formState.errors.novaSenha]} />
+          </Field>
+          <Field data-invalid={!!form.formState.errors.confirmacao}>
+            <FieldLabel htmlFor="confirmacao">Repita a nova senha</FieldLabel>
+            <Input id="confirmacao" type="password" autoComplete="new-password" {...form.register('confirmacao')} />
+            <FieldError errors={[form.formState.errors.confirmacao]} />
+          </Field>
+        </FieldGroup>
+        {erroGeral ? (
+          <p role="alert" className="text-sm text-destructive">
+            {erroGeral}
           </p>
+        ) : null}
+        <div className="flex flex-col gap-2">
+          <Button type="submit" size="lg" disabled={form.formState.isSubmitting}>
+            {form.formState.isSubmitting ? 'Salvando…' : 'Salvar nova senha'}
+          </Button>
+          <Button type="button" variant="ghost" onClick={() => sair()}>
+            Sair
+          </Button>
         </div>
-        <form onSubmit={form.handleSubmit(enviar)} noValidate className="flex flex-col gap-5">
-          <FieldGroup>
-            <Field data-invalid={!!form.formState.errors.senhaAtual}>
-              <FieldLabel htmlFor="senhaAtual">Senha atual</FieldLabel>
-              <Input id="senhaAtual" type="password" autoComplete="current-password" {...form.register('senhaAtual')} />
-              <FieldError errors={[form.formState.errors.senhaAtual]} />
-            </Field>
-            <Field data-invalid={!!form.formState.errors.novaSenha}>
-              <FieldLabel htmlFor="novaSenha">Nova senha</FieldLabel>
-              <Input id="novaSenha" type="password" autoComplete="new-password" {...form.register('novaSenha')} />
-              <FieldDescription>Mínimo de 8 caracteres. Evite senhas comuns e o seu e-mail.</FieldDescription>
-              <FieldError errors={[form.formState.errors.novaSenha]} />
-            </Field>
-            <Field data-invalid={!!form.formState.errors.confirmacao}>
-              <FieldLabel htmlFor="confirmacao">Repita a nova senha</FieldLabel>
-              <Input id="confirmacao" type="password" autoComplete="new-password" {...form.register('confirmacao')} />
-              <FieldError errors={[form.formState.errors.confirmacao]} />
-            </Field>
-          </FieldGroup>
-          {erroGeral ? (
-            <p role="alert" className="text-sm text-destructive">
-              {erroGeral}
-            </p>
-          ) : null}
-          <div className="flex flex-col gap-2">
-            <Button type="submit" size="lg" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? 'Salvando…' : 'Salvar nova senha'}
-            </Button>
-            <Button type="button" variant="ghost" onClick={() => sair()}>
-              Sair
-            </Button>
-          </div>
-        </form>
-      </div>
-    </main>
+      </form>
+    </MolduraPublica>
   );
 }

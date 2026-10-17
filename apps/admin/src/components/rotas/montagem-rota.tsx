@@ -108,7 +108,7 @@ function LinhaParada({
       ref={setNodeRef}
       style={estilo}
       className={cn(
-        'flex gap-2 rounded-lg border bg-background p-3',
+        'superficie flex gap-2 p-3',
         isDragging && 'relative z-10 shadow-md',
         bloqueada && 'bg-muted/40',
       )}

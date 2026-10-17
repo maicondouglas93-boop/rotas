@@ -12,7 +12,7 @@ import {
   type Parada,
   type Rota,
 } from '@rotas/shared';
-import { MoreHorizontalIcon, TriangleAlertIcon } from 'lucide-react';
+import { CheckIcon, MoreHorizontalIcon, TriangleAlertIcon, XIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -46,14 +46,15 @@ import {
   useTransferirRota,
 } from '@/lib/consultas/rotas';
 import { formatarData, formatarDataHora, formatarHora } from '@/lib/formatos';
+import { cn } from '@/lib/utils';
 
 type Dialogo = 'enviar' | 'cancelar' | 'transferir' | 'duplicar' | 'excluir' | null;
 
 function Informacao({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <dt className="text-xs text-muted-foreground">{rotulo}</dt>
-      <dd className="text-sm tabular-nums">{children}</dd>
+      <dt className="text-xs font-medium text-muted-foreground">{rotulo}</dt>
+      <dd className="text-sm font-medium tabular-nums">{children}</dd>
     </div>
   );
 }
@@ -87,48 +88,98 @@ function OcorrenciasParada({ parada, ocorrencias }: { parada: Parada; ocorrencia
   );
 }
 
+/** Bolinha da linha do tempo: número da parada, ✓ quando finalizada, × quando cancelada (igual ao app). */
+function Marcador({ parada, atual }: { parada: Parada; atual: boolean }) {
+  const base = 'relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold tabular-nums';
+  if (parada.status === 'FINALIZADA') {
+    return (
+      <span className={cn(base, 'border-[#067647] bg-[#067647] text-white')}>
+        <CheckIcon className="size-4" aria-label="Finalizada" />
+      </span>
+    );
+  }
+  if (parada.status === 'CANCELADA') {
+    return (
+      <span className={cn(base, 'border-border bg-muted text-muted-foreground')}>
+        <XIcon className="size-4" aria-label="Cancelada" />
+      </span>
+    );
+  }
+  return (
+    <span className={cn(base, atual ? 'border-primary bg-primary text-primary-foreground' : 'border-input bg-card text-muted-foreground')}>
+      {parada.sequencia}
+    </span>
+  );
+}
+
 function LinhaParada({
   parada,
   ocorrencias,
+  atual,
+  ultima,
   podeCancelar,
   onCancelar,
 }: {
   parada: Parada;
   ocorrencias: OcorrenciaRota[];
+  atual: boolean;
+  ultima: boolean;
   podeCancelar: boolean;
   onCancelar: () => void;
 }) {
   const cancelavel = podeCancelar && (parada.status === 'PENDENTE' || parada.status === 'A_CAMINHO');
+  const encerrada = parada.status === 'FINALIZADA' || parada.status === 'CANCELADA';
   return (
-    <li className="flex gap-3 rounded-lg border p-3">
-      <span className="w-6 pt-0.5 text-sm font-semibold tabular-nums">{parada.sequencia}</span>
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="truncate font-medium">{parada.nomeEmpresa}</span>
-          <StatusBadge tipo="parada" status={parada.status} />
-        </div>
-        <span className="text-xs text-muted-foreground">{parada.enderecoFormatado}</span>
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          {parada.servicos.map((s) => (
-            <span key={s.id} className="flex items-center gap-1">
-              {ROTULO_TIPO_SERVICO[s.tipo]}: <StatusBadge tipo="servico" status={s.status} />
-              {s.concluidoEm ? <span className="text-xs text-muted-foreground">às {formatarHora(s.concluidoEm)}</span> : null}
-            </span>
-          ))}
-        </div>
-        {parada.observacoes ? <p className="text-sm text-muted-foreground">Obs.: {parada.observacoes}</p> : null}
-        {parada.chegadaEm ? (
-          <span className="text-xs text-muted-foreground">Chegada às {formatarHora(parada.chegadaEm)}</span>
-        ) : null}
-        <OcorrenciasParada parada={parada} ocorrencias={ocorrencias} />
+    <li className={cn('relative flex gap-3', !ultima && 'pb-3')}>
+      {!ultima ? (
+        <span
+          aria-hidden
+          className={cn('absolute top-10 bottom-0 left-[15px] w-0.5 rounded-full', encerrada ? 'bg-[#067647]' : 'bg-border')}
+        />
+      ) : null}
+      <div className="pt-3">
+        <Marcador parada={parada} atual={atual} />
       </div>
-      <div className="flex flex-col items-end gap-1">
-        <LinksExternos whatsapp={parada.whatsapp} destino={parada} />
-        {cancelavel ? (
-          <Button variant="ghost" size="sm" onClick={onCancelar}>
-            Cancelar parada
-          </Button>
-        ) : null}
+      <div
+        className={cn(
+          'superficie flex min-w-0 flex-1 gap-3 p-4',
+          atual && 'border-primary ring-1 ring-primary',
+          encerrada && 'bg-muted/40',
+        )}
+      >
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          {atual ? <span className="text-[11px] font-bold tracking-widest text-primary uppercase">Próxima</span> : null}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="truncate font-semibold">{parada.nomeEmpresa}</span>
+            <StatusBadge tipo="parada" status={parada.status} />
+          </div>
+          <span className="text-xs text-muted-foreground">{parada.enderecoFormatado}</span>
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            {parada.servicos.map((s) => (
+              <span key={s.id} className="flex items-center gap-1">
+                {ROTULO_TIPO_SERVICO[s.tipo]}: <StatusBadge tipo="servico" status={s.status} />
+                {s.concluidoEm ? <span className="text-xs text-muted-foreground">às {formatarHora(s.concluidoEm)}</span> : null}
+              </span>
+            ))}
+          </div>
+          {parada.observacoes ? (
+            <p className="rounded-md bg-[#fef3dc] px-2.5 py-1.5 text-sm font-medium text-[#8a4b06] dark:bg-amber-950 dark:text-amber-200">
+              Obs.: {parada.observacoes}
+            </p>
+          ) : null}
+          {parada.chegadaEm ? (
+            <span className="text-xs text-muted-foreground">Chegada às {formatarHora(parada.chegadaEm)}</span>
+          ) : null}
+          <OcorrenciasParada parada={parada} ocorrencias={ocorrencias} />
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <LinksExternos whatsapp={parada.whatsapp} destino={parada} />
+          {cancelavel ? (
+            <Button variant="ghost" size="sm" onClick={onCancelar}>
+              Cancelar parada
+            </Button>
+          ) : null}
+        </div>
       </div>
     </li>
   );
@@ -197,7 +248,14 @@ function ConteudoRota({ rota }: { rota: Rota }) {
   const cancelarParada = useCancelarParada();
   const fechar = () => setDialogo(null);
   const concluidas = rota.paradas.filter((p) => p.status === 'FINALIZADA' || p.status === 'CANCELADA').length;
+  const percentual = rota.paradas.length > 0 ? Math.round((concluidas / rota.paradas.length) * 100) : 0;
   const emExecucao = rotaEmExecucao(rota.status);
+  // Mesma regra do app: parada em curso, senão a primeira pendente.
+  const proxima =
+    rota.status === 'EM_ANDAMENTO'
+      ? (rota.paradas.find((p) => p.status === 'NO_LOCAL' || p.status === 'A_CAMINHO') ??
+        rota.paradas.find((p) => p.status === 'PENDENTE'))
+      : undefined;
   const ocorrencias = useOcorrenciasRota(rota.id, emExecucao);
   const ocorrenciasPorParada = Map.groupBy(ocorrencias.data ?? [], (o) => o.paradaId);
 
@@ -247,15 +305,37 @@ function ConteudoRota({ rota }: { rota: Rota }) {
         </p>
       ) : null}
 
-      <dl className="grid grid-cols-2 gap-4 rounded-lg border p-4 sm:grid-cols-5">
-        <Informacao rotulo="Motorista">{rota.motorista?.nome ?? 'Definir antes de enviar'}</Informacao>
-        <Informacao rotulo="Enviada">{formatarDataHora(rota.enviadaEm)}</Informacao>
-        <Informacao rotulo="Recebida">{formatarDataHora(rota.recebidaEm)}</Informacao>
-        <Informacao rotulo="Iniciada">{formatarDataHora(rota.iniciadaEm)}</Informacao>
-        <Informacao rotulo={rota.status === 'CANCELADA' ? 'Cancelada' : 'Concluída'}>
-          {formatarDataHora(rota.status === 'CANCELADA' ? rota.canceladaEm : rota.concluidaEm)}
-        </Informacao>
-      </dl>
+      <div className="superficie flex flex-col gap-4 p-5">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <p className="flex items-baseline gap-2">
+            <span className="text-3xl font-bold tracking-tight tabular-nums">{concluidas}</span>
+            <span className="text-sm font-medium text-muted-foreground">de {rota.paradas.length} paradas concluídas</span>
+          </p>
+          <span className="text-sm font-semibold text-muted-foreground tabular-nums">{percentual}%</span>
+        </div>
+        <div
+          role="progressbar"
+          aria-label="Paradas concluídas"
+          aria-valuemin={0}
+          aria-valuemax={rota.paradas.length}
+          aria-valuenow={concluidas}
+          className="h-2 overflow-hidden rounded-full bg-muted"
+        >
+          <div
+            className={cn('h-full rounded-full transition-[width]', percentual === 100 ? 'bg-[#067647]' : 'bg-primary')}
+            style={{ width: `${percentual}%` }}
+          />
+        </div>
+        <dl className="grid grid-cols-2 gap-4 border-t pt-4 sm:grid-cols-5">
+          <Informacao rotulo="Motorista">{rota.motorista?.nome ?? 'Definir antes de enviar'}</Informacao>
+          <Informacao rotulo="Enviada">{formatarDataHora(rota.enviadaEm)}</Informacao>
+          <Informacao rotulo="Recebida">{formatarDataHora(rota.recebidaEm)}</Informacao>
+          <Informacao rotulo="Iniciada">{formatarDataHora(rota.iniciadaEm)}</Informacao>
+          <Informacao rotulo={rota.status === 'CANCELADA' ? 'Cancelada' : 'Concluída'}>
+            {formatarDataHora(rota.status === 'CANCELADA' ? rota.canceladaEm : rota.concluidaEm)}
+          </Informacao>
+        </dl>
+      </div>
       {rota.motivoCancelamento ? <p className="text-sm text-muted-foreground">Motivo do cancelamento: {rota.motivoCancelamento}</p> : null}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_18rem]">
@@ -274,12 +354,14 @@ function ConteudoRota({ rota }: { rota: Rota }) {
           {rota.paradas.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhuma parada. Edite a rota para adicionar empresas.</p>
           ) : (
-            <ol className="flex flex-col gap-2">
-              {rota.paradas.map((p) => (
+            <ol className="flex flex-col">
+              {rota.paradas.map((p, i) => (
                 <LinhaParada
                   key={p.id}
                   parada={p}
                   ocorrencias={ocorrenciasPorParada.get(p.id) ?? []}
+                  atual={p.id === proxima?.id}
+                  ultima={i === rota.paradas.length - 1}
                   podeCancelar={acoes.cancelarParada}
                   onCancelar={() => setParadaACancelar(p)}
                 />
@@ -291,7 +373,9 @@ function ConteudoRota({ rota }: { rota: Rota }) {
           <h2 id="titulo-historico" className="text-base font-semibold">
             Histórico
           </h2>
-          <Historico rota={rota} />
+          <div className="superficie p-4">
+            <Historico rota={rota} />
+          </div>
         </section>
       </div>
 

@@ -16,7 +16,7 @@ export function CabecalhoPagina({
   return (
     <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex min-w-0 flex-col gap-1">
-        <h1 className="text-xl font-semibold">{titulo}</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{titulo}</h1>
         {descricao ? <p className="text-sm text-muted-foreground">{descricao}</p> : null}
       </div>
       {acoes ? <div className="flex flex-wrap items-center gap-2">{acoes}</div> : null}
@@ -34,7 +34,7 @@ export function ConteudoPagina({ children, estreita = false }: { children: React
 
 export function ErroCarregamento({ erro, onTentarNovamente }: { erro: unknown; onTentarNovamente: () => void }) {
   return (
-    <div role="alert" className="flex flex-col items-start gap-3 rounded-lg border border-destructive/30 p-4">
+    <div role="alert" className="flex flex-col items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
       <p className="text-sm">{mensagemDeErro(erro)}</p>
       <Button variant="outline" size="sm" onClick={onTentarNovamente}>
         Tentar novamente
@@ -45,7 +45,7 @@ export function ErroCarregamento({ erro, onTentarNovamente }: { erro: unknown; o
 
 export function Vazio({ titulo, descricao, acao }: { titulo: string; descricao?: string; acao?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed px-4 py-10 text-center">
+    <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed bg-card px-4 py-12 text-center">
       <p className="text-sm font-medium">{titulo}</p>
       {descricao ? <p className="max-w-sm text-sm text-muted-foreground">{descricao}</p> : null}
       {acao ? <div className="mt-2">{acao}</div> : null}

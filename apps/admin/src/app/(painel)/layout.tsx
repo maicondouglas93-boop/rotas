@@ -17,6 +17,21 @@ const NAVEGACAO = [
   { href: '/motoristas', rotulo: 'Motoristas', icone: TruckIcon },
 ] as const;
 
+/** Marca: ícone do caminhão num quadrado translúcido, como no app do motorista. */
+function Marca() {
+  return (
+    <div className="flex items-center gap-2.5 px-1">
+      <span className="flex size-9 items-center justify-center rounded-xl border border-white/20 bg-white/12">
+        <TruckIcon className="size-5" aria-hidden />
+      </span>
+      <span className="flex flex-col leading-tight">
+        <span className="text-base font-bold tracking-tight">Rotas</span>
+        <span className="text-xs text-white/70">Painel de gestão</span>
+      </span>
+    </div>
+  );
+}
+
 function Navegacao({ aoNavegar }: { aoNavegar?: () => void }) {
   const caminho = usePathname();
   return (
@@ -30,10 +45,11 @@ function Navegacao({ aoNavegar }: { aoNavegar?: () => void }) {
             onClick={aoNavegar}
             aria-current={ativo ? 'page' : undefined}
             className={cn(
-              'flex h-9 items-center gap-2 rounded-md px-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground',
-              ativo && 'bg-muted text-foreground',
+              'relative flex h-10 items-center gap-2.5 rounded-lg px-3 text-sm font-medium text-white/75 transition-colors hover:bg-sidebar-accent hover:text-white',
+              ativo && 'bg-sidebar-accent text-white',
             )}
           >
+            {ativo ? <span aria-hidden className="absolute inset-y-2 left-0 w-1 rounded-full bg-sidebar-primary" /> : null}
             <Icone className="size-4" aria-hidden />
             {rotulo}
           </Link>
@@ -77,15 +93,26 @@ export default function LayoutPainel({ children }: { children: ReactNode }) {
   }
 
   const rodape = (
-    <div className="flex flex-col gap-3 border-t pt-3">
-      <div className="text-xs">
+    <div className="flex flex-col gap-3 border-t border-sidebar-border pt-3">
+      <div className="px-1 text-xs text-white/80 [&_p]:text-xs">
         <StatusApi />
       </div>
-      <div className="flex items-center justify-between gap-2">
-        <span className="truncate text-sm text-muted-foreground" title={estado.usuario.email}>
-          {estado.usuario.email}
+      <div className="flex items-center justify-between gap-2 rounded-lg bg-white/8 px-2 py-1.5">
+        <span className="flex min-w-0 items-center gap-2">
+          <span aria-hidden className="flex size-7 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-xs font-bold text-sidebar-primary-foreground uppercase">
+            {estado.usuario.email.charAt(0)}
+          </span>
+          <span className="truncate text-sm text-white/85" title={estado.usuario.email}>
+            {estado.usuario.email}
+          </span>
         </span>
-        <Button variant="ghost" size="icon-sm" onClick={() => sair()} aria-label="Sair">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => sair()}
+          aria-label="Sair"
+          className="text-white/80 hover:bg-white/15 hover:text-white"
+        >
           <LogOutIcon />
         </Button>
       </div>
@@ -94,25 +121,32 @@ export default function LayoutPainel({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen">
-      <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col justify-between border-r bg-sidebar p-3 md:flex">
-        <div className="flex flex-col gap-4">
-          <span className="px-2 text-sm font-semibold">Rotas · Painel</span>
+      <aside className="gradiente-marca sticky top-0 hidden h-screen w-60 shrink-0 flex-col justify-between p-3 text-sidebar-foreground md:flex">
+        <div className="flex flex-col gap-6 pt-1">
+          <Marca />
           <Navegacao />
         </div>
         {rodape}
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-12 items-center gap-2 border-b px-3 md:hidden">
-          <Button variant="ghost" size="icon-sm" onClick={() => setMenuAberto(true)} aria-label="Abrir menu">
+        <header className="gradiente-marca flex h-14 items-center gap-2 px-3 text-white md:hidden">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setMenuAberto(true)}
+            aria-label="Abrir menu"
+            className="text-white hover:bg-white/15 hover:text-white"
+          >
             <MenuIcon />
           </Button>
-          <span className="text-sm font-semibold">Rotas · Painel</span>
+          <span className="text-sm font-bold tracking-tight">Rotas · Painel</span>
         </header>
         <Sheet open={menuAberto} onOpenChange={setMenuAberto}>
-          <SheetContent side="left" className="flex w-64 flex-col justify-between p-3">
-            <div className="flex flex-col gap-4">
-              <SheetTitle className="px-2 text-sm">Rotas · Painel</SheetTitle>
+          <SheetContent side="left" className="gradiente-marca flex w-64 flex-col justify-between border-none p-3 text-sidebar-foreground">
+            <div className="flex flex-col gap-6 pt-1">
+              <SheetTitle className="sr-only">Menu</SheetTitle>
+              <Marca />
               <Navegacao aoNavegar={() => setMenuAberto(false)} />
             </div>
             {rodape}

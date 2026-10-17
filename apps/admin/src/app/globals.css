@@ -48,39 +48,40 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Identidade da marca, a mesma do app do motorista (apps/driver/src/componentes/tema.ts). */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.46 0.1 230);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.62 0.1 230);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.46 0.1 230);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --background: #f2f5f8;
+  --foreground: #0b1524;
+  --card: #ffffff;
+  --card-foreground: #0b1524;
+  --popover: #ffffff;
+  --popover-foreground: #0b1524;
+  --primary: #0a5a75;
+  --primary-foreground: #ffffff;
+  --secondary: #e4f0f5;
+  --secondary-foreground: #05344a;
+  --muted: #eef1f5;
+  --muted-foreground: #525d70;
+  --accent: #e4f0f5;
+  --accent-foreground: #05344a;
+  --destructive: #b42318;
+  --border: #e1e6ed;
+  --input: #d5dce5;
+  --ring: #3d8fab;
+  --chart-1: #0a5a75;
+  --chart-2: #3d8fab;
+  --chart-3: #8a4b06;
+  --chart-4: #067647;
+  --chart-5: #b42318;
+  --radius: 0.75rem;
+  --sidebar: #05344a;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #5fd3e8;
+  --sidebar-primary-foreground: #05344a;
+  --sidebar-accent: rgb(255 255 255 / 0.14);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgb(255 255 255 / 0.12);
+  --sidebar-ring: #5fd3e8;
 }
 
 .dark {
@@ -107,14 +108,14 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar: #05344a;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #5fd3e8;
+  --sidebar-primary-foreground: #05344a;
+  --sidebar-accent: rgb(255 255 255 / 0.14);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgb(255 255 255 / 0.12);
+  --sidebar-ring: #5fd3e8;
 }
 
 @layer base {
@@ -127,4 +128,20 @@
   html {
     @apply font-sans;
   }
+}
+
+/* Cartão padrão do painel: fundo do card, borda fina e sombra suave em camadas. */
+@utility superficie {
+  border-radius: calc(var(--radius) * 1.4);
+  border-width: 1px;
+  border-color: var(--border);
+  background-color: var(--card);
+  box-shadow:
+    0 1px 2px rgb(16 24 40 / 0.05),
+    0 6px 16px rgb(16 24 40 / 0.05);
+}
+
+/* Gradiente da marca (barra lateral e login), igual ao do app. */
+@utility gradiente-marca {
+  background-image: linear-gradient(160deg, #0d7391 0%, #075069 55%, #05344a 100%);
 }

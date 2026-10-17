@@ -84,7 +84,7 @@ function ListaRotas() {
         />
       ) : (
         <>
-          <div className="hidden rounded-lg border md:block">
+          <div className="superficie hidden overflow-hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -130,7 +130,7 @@ function ListaRotas() {
           <ul className="flex flex-col gap-2 md:hidden">
             {consulta.data.itens.map((r) => (
               <li key={r.id}>
-                <Link href={`/rotas/${r.id}`} className="flex flex-col gap-1 rounded-lg border p-3">
+                <Link href={`/rotas/${r.id}`} className="superficie flex flex-col gap-1 p-3">
                   <span className="flex items-center justify-between gap-2">
                     <span className="truncate font-medium">{r.nome}</span>
                     <StatusBadge tipo="rota" status={r.status} />
