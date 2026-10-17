@@ -45,6 +45,9 @@ Fora do escopo:
 | Logout | Revoga a sessão atual. "Sair de todos os dispositivos" revoga todas do usuário. |
 | Desativação | Desativar motorista revoga todas as sessões; o guard confere `usuario.ativo` a cada requisição. |
 | Primeiro acesso | Conta criada pelo admin com senha temporária e `deveTrocarSenha = true`; a API só aceita `/auth/trocar-senha` até a troca. |
+| Concorrência | Dois refresh simultâneos com o mesmo token contam como reuso e derrubam a família. Os clientes devem renovar um de cada vez (ver `admin-dashboard-ui` e `react-native-driver-app`). |
+
+Implementação: `apps/api/src/modulos/auth/` (`AutenticacaoGuard` e `PerfisGuard` globais, decorators `@Publico`, `@Perfis`, `@UsuarioAtual`, `@PermitirSenhaTemporaria`). Primeiro admin local: `pnpm --filter api db:seed` com `SEED_ADMIN_EMAIL`/`SEED_ADMIN_SENHA`.
 
 ### Onde os tokens ficam
 
@@ -55,7 +58,8 @@ Fora do escopo:
 
 - Argon2id (pacote `argon2`). Se a compilação nativa falhar no ambiente de deploy, `bcrypt` com custo ≥ 12, registrado em ADR.
 - Mínimo 8 caracteres, máximo 128; sem regras de composição; rejeitar as senhas mais comuns e a senha igual ao e-mail.
-- Limite de tentativas: `@nestjs/throttler` no login (ex.: 5/min por IP) + bloqueio temporário progressivo por conta após falhas seguidas.
+- Limite de tentativas (`@nestjs/throttler`): login rastreado por **IP + e-mail** (`LIMITE_LOGIN_POR_MINUTO`) com teto por IP mais alto. Nunca limite o login só por IP: motoristas entram juntos pela mesma rede do depósito. Rotas autenticadas de leitura frequente (`GET /auth/eu`) não têm limite. O limite fica em memória por instância; com mais de uma instância, migrar para armazenamento compartilhado (ADR).
+- Erro de senha atual em `trocar-senha` é 422 (`REGRA_NEGOCIO`), não 401: clientes tratam 401 como sessão expirada.
 
 ## Autorização
 

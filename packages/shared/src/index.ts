@@ -6,4 +6,5 @@ export * from './api/erro-api.js';
 export * from './eventos.js';
 export * from './links.js';
 export * from './telefone.js';
+export * from './schemas/auth.js';
 export * from './schemas/empresas.js';

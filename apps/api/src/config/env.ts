@@ -15,6 +15,15 @@ const esquemaEnv = z.object({
         .filter(Boolean),
     ),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'log', 'debug', 'verbose']).default('log'),
+  JWT_SECRET: z.string().min(32),
+  JWT_ACCESS_MINUTOS: z.coerce.number().int().min(1).max(1440).default(15),
+  REFRESH_DIAS: z.coerce.number().int().min(1).max(365).default(30),
+  COOKIE_DOMINIO: z
+    .string()
+    .trim()
+    .transform((valor) => (valor === '' ? undefined : valor))
+    .optional(),
+  LIMITE_LOGIN_POR_MINUTO: z.coerce.number().int().min(1).default(5),
 });
 
 export type Env = z.infer<typeof esquemaEnv>;

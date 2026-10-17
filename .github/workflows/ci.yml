@@ -35,6 +35,9 @@ jobs:
       DIRECT_DATABASE_URL: postgresql://rotas:rotas_ci@localhost:5432/rotas_test
       CORS_ORIGENS: http://localhost:3000
       LOG_LEVEL: error
+      # Segredo só de CI (não é usado em nenhum ambiente real).
+      JWT_SECRET: segredo-exclusivo-do-ci-com-mais-de-32-caracteres
+      LIMITE_LOGIN_POR_MINUTO: 1000
 
     steps:
       - uses: actions/checkout@v5

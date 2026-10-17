@@ -8,6 +8,11 @@ import { AppModule } from '../src/app.module.js';
 import { carregarEnv } from '../src/config/env.js';
 import { configurarApp } from '../src/configurar-app.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import {
+  autenticarAdminTeste,
+  autenticarMotoristaTeste,
+  limparBancoTeste,
+} from './apoio/autenticacao.js';
 
 const respostaPaginadaEmpresasSchema = z.object({
   itens: z.array(empresaSchema),
@@ -39,6 +44,7 @@ const payloadBase = {
 describe('Empresas (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
+  let tokenAdmin: string;
 
   beforeAll(async () => {
     const modulo = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -49,15 +55,36 @@ describe('Empresas (e2e)', () => {
   });
 
   beforeEach(async () => {
-    await prisma.$executeRaw`TRUNCATE empresas CASCADE`;
+    await limparBancoTeste(prisma);
+    const admin = await autenticarAdminTeste(app, prisma);
+    tokenAdmin = admin.accessToken;
   });
 
   afterAll(async () => {
     await app.close();
   });
 
+  it('retorna 401 NAO_AUTENTICADO quando a requisição não envia token', async () => {
+    const res = await request(app.getHttpServer()).get('/api/v1/empresas').expect(401);
+    expect(respostaErroSchema.parse(res.body).erro.codigo).toBe('NAO_AUTENTICADO');
+  });
+
+  it('retorna 403 SEM_PERMISSAO quando autenticado com perfil MOTORISTA', async () => {
+    const motorista = await autenticarMotoristaTeste(app, prisma);
+
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/empresas')
+      .set('Authorization', `Bearer ${motorista.accessToken}`)
+      .expect(403);
+    expect(respostaErroSchema.parse(res.body).erro.codigo).toBe('SEM_PERMISSAO');
+  });
+
   it('POST /api/v1/empresas cria empresa normalizada, mascara documento e omite campos internos', async () => {
-    const res = await request(app.getHttpServer()).post('/api/v1/empresas').send(payloadBase).expect(201);
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/empresas')
+      .set('Authorization', `Bearer ${tokenAdmin}`)
+      .send(payloadBase)
+      .expect(201);
 
     const corpo = empresaSchema.parse(res.body);
     expect(corpo.nomeFantasia).toBe('Mercado São Jorge');
@@ -82,6 +109,7 @@ describe('Empresas (e2e)', () => {
   it('POST /api/v1/empresas retorna 400 VALIDACAO com detalhes em dados inválidos', async () => {
     const res = await request(app.getHttpServer())
       .post('/api/v1/empresas')
+      .set('Authorization', `Bearer ${tokenAdmin}`)
       .send({ ...payloadBase, telefone: 'invalido', longitude: undefined })
       .expect(400);
 
@@ -97,6 +125,7 @@ describe('Empresas (e2e)', () => {
   it('POST /api/v1/empresas retorna 400 VALIDACAO quando recebe campo extra', async () => {
     const res = await request(app.getHttpServer())
       .post('/api/v1/empresas')
+      .set('Authorization', `Bearer ${tokenAdmin}`)
       .send({ ...payloadBase, campoNaoPermitido: true })
       .expect(400);
 
@@ -104,10 +133,15 @@ describe('Empresas (e2e)', () => {
   });
 
   it('POST /api/v1/empresas retorna 409 REGISTRO_DUPLICADO para documento duplicado entre ativas', async () => {
-    await request(app.getHttpServer()).post('/api/v1/empresas').send(payloadBase).expect(201);
+    await request(app.getHttpServer())
+      .post('/api/v1/empresas')
+      .set('Authorization', `Bearer ${tokenAdmin}`)
+      .send(payloadBase)
+      .expect(201);
 
     const resDuplicada = await request(app.getHttpServer())
       .post('/api/v1/empresas')
+      .set('Authorization', `Bearer ${tokenAdmin}`)
       .send({ ...payloadBase, nomeFantasia: 'Outra Empresa' })
       .expect(409);
 
@@ -117,39 +151,53 @@ describe('Empresas (e2e)', () => {
   it('GET /api/v1/empresas omite arquivadas por padrão e as inclui com incluirArquivadas=true', async () => {
     const resB = await request(app.getHttpServer())
       .post('/api/v1/empresas')
+      .set('Authorization', `Bearer ${tokenAdmin}`)
       .send({ ...payloadBase, nomeFantasia: 'Bazar Paulista', documento: undefined })
       .expect(201);
     const empresaB = empresaSchema.parse(resB.body);
 
     await request(app.getHttpServer())
       .post('/api/v1/empresas')
+      .set('Authorization', `Bearer ${tokenAdmin}`)
       .send({ ...payloadBase, nomeFantasia: 'Armazém Campinas', documento: undefined })
       .expect(201);
 
-    await request(app.getHttpServer()).post(`/api/v1/empresas/${empresaB.id}/arquivar`).expect(200);
+    await request(app.getHttpServer())
+      .post(`/api/v1/empresas/${empresaB.id}/arquivar`)
+      .set('Authorization', `Bearer ${tokenAdmin}`)
+      .expect(200);
 
-    const listaAtivas = await request(app.getHttpServer()).get('/api/v1/empresas').expect(200);
+    const listaAtivas = await request(app.getHttpServer())
+      .get('/api/v1/empresas')
+      .set('Authorization', `Bearer ${tokenAdmin}`)
+      .expect(200);
     const paginadaAtivas = respostaPaginadaEmpresasSchema.parse(listaAtivas.body);
     expect(paginadaAtivas.total).toBe(1);
     expect(paginadaAtivas.itens.map((i) => i.nomeFantasia)).toEqual(['Armazém Campinas']);
 
     const listaTodas = await request(app.getHttpServer())
       .get('/api/v1/empresas')
+      .set('Authorization', `Bearer ${tokenAdmin}`)
       .query({ incluirArquivadas: 'true' })
       .expect(200);
     const paginadaTodas = respostaPaginadaEmpresasSchema.parse(listaTodas.body);
     expect(paginadaTodas.total).toBe(2);
-    expect(paginadaTodas.itens.map((i) => i.nomeFantasia)).toEqual(['Armazém Campinas', 'Bazar Paulista']);
+    expect(paginadaTodas.itens.map((i) => i.nomeFantasia)).toEqual([
+      'Armazém Campinas',
+      'Bazar Paulista',
+    ]);
   });
 
   it('GET /api/v1/empresas filtra por busca em nomeFantasia, bairro ou cidade sem diferenciar maiúsculas', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/empresas')
+      .set('Authorization', `Bearer ${tokenAdmin}`)
       .send({ ...payloadBase, nomeFantasia: 'Bazar Paulista', documento: undefined, bairro: 'Mooca' })
       .expect(201);
 
     await request(app.getHttpServer())
       .post('/api/v1/empresas')
+      .set('Authorization', `Bearer ${tokenAdmin}`)
       .send({
         ...payloadBase,
         nomeFantasia: 'Armazém Campinas',
@@ -161,6 +209,7 @@ describe('Empresas (e2e)', () => {
 
     const buscaCidade = await request(app.getHttpServer())
       .get('/api/v1/empresas')
+      .set('Authorization', `Bearer ${tokenAdmin}`)
       .query({ busca: 'CAMPINAS' })
       .expect(200);
     const resultado = respostaPaginadaEmpresasSchema.parse(buscaCidade.body);
@@ -173,6 +222,7 @@ describe('Empresas (e2e)', () => {
       (
         await request(app.getHttpServer())
           .post('/api/v1/empresas')
+          .set('Authorization', `Bearer ${tokenAdmin}`)
           .send({ ...payloadBase, nomeFantasia: 'Rede Mesmo Nome', documento: undefined })
           .expect(201)
       ).body,
@@ -181,18 +231,29 @@ describe('Empresas (e2e)', () => {
       (
         await request(app.getHttpServer())
           .post('/api/v1/empresas')
+          .set('Authorization', `Bearer ${tokenAdmin}`)
           .send({ ...payloadBase, nomeFantasia: 'Rede Mesmo Nome', documento: undefined })
           .expect(201)
       ).body,
     );
 
     const pag1 = respostaPaginadaEmpresasSchema.parse(
-      (await request(app.getHttpServer()).get('/api/v1/empresas').query({ pagina: '1', porPagina: '1' }).expect(200))
-        .body,
+      (
+        await request(app.getHttpServer())
+          .get('/api/v1/empresas')
+          .set('Authorization', `Bearer ${tokenAdmin}`)
+          .query({ pagina: '1', porPagina: '1' })
+          .expect(200)
+      ).body,
     );
     const pag2 = respostaPaginadaEmpresasSchema.parse(
-      (await request(app.getHttpServer()).get('/api/v1/empresas').query({ pagina: '2', porPagina: '1' }).expect(200))
-        .body,
+      (
+        await request(app.getHttpServer())
+          .get('/api/v1/empresas')
+          .set('Authorization', `Bearer ${tokenAdmin}`)
+          .query({ pagina: '2', porPagina: '1' })
+          .expect(200)
+      ).body,
     );
 
     expect(pag1.total).toBe(2);
@@ -204,6 +265,7 @@ describe('Empresas (e2e)', () => {
   it('GET /api/v1/empresas/:id retorna 404 NAO_ENCONTRADO quando a empresa não existe', async () => {
     const res = await request(app.getHttpServer())
       .get('/api/v1/empresas/00000000-0000-4000-8000-000000000000')
+      .set('Authorization', `Bearer ${tokenAdmin}`)
       .expect(404);
 
     expect(respostaErroSchema.parse(res.body).erro.codigo).toBe('NAO_ENCONTRADO');
@@ -211,23 +273,42 @@ describe('Empresas (e2e)', () => {
 
   it('GET /api/v1/empresas/:id retorna empresa mesmo quando arquivada', async () => {
     const criada = empresaSchema.parse(
-      (await request(app.getHttpServer()).post('/api/v1/empresas').send(payloadBase).expect(201)).body,
+      (
+        await request(app.getHttpServer())
+          .post('/api/v1/empresas')
+          .set('Authorization', `Bearer ${tokenAdmin}`)
+          .send(payloadBase)
+          .expect(201)
+      ).body,
     );
-    await request(app.getHttpServer()).post(`/api/v1/empresas/${criada.id}/arquivar`).expect(200);
+    await request(app.getHttpServer())
+      .post(`/api/v1/empresas/${criada.id}/arquivar`)
+      .set('Authorization', `Bearer ${tokenAdmin}`)
+      .expect(200);
 
-    const detalhe = await request(app.getHttpServer()).get(`/api/v1/empresas/${criada.id}`).expect(200);
+    const detalhe = await request(app.getHttpServer())
+      .get(`/api/v1/empresas/${criada.id}`)
+      .set('Authorization', `Bearer ${tokenAdmin}`)
+      .expect(200);
     expect(empresaSchema.parse(detalhe.body).arquivadaEm).not.toBeNull();
   });
 
   it('PATCH /api/v1/empresas/:id edita endereço mantendo coordenadas existentes', async () => {
     const criada = empresaSchema.parse(
-      (await request(app.getHttpServer()).post('/api/v1/empresas').send(payloadBase).expect(201)).body,
+      (
+        await request(app.getHttpServer())
+          .post('/api/v1/empresas')
+          .set('Authorization', `Bearer ${tokenAdmin}`)
+          .send(payloadBase)
+          .expect(201)
+      ).body,
     );
 
     const editada = empresaSchema.parse(
       (
         await request(app.getHttpServer())
           .patch(`/api/v1/empresas/${criada.id}`)
+          .set('Authorization', `Bearer ${tokenAdmin}`)
           .send({ logradouro: 'Av. Paulista', numero: '1000' })
           .expect(200)
       ).body,
@@ -240,7 +321,13 @@ describe('Empresas (e2e)', () => {
 
   it('PATCH /api/v1/empresas/:id com string vazia apaga o complemento', async () => {
     const criada = empresaSchema.parse(
-      (await request(app.getHttpServer()).post('/api/v1/empresas').send(payloadBase).expect(201)).body,
+      (
+        await request(app.getHttpServer())
+          .post('/api/v1/empresas')
+          .set('Authorization', `Bearer ${tokenAdmin}`)
+          .send(payloadBase)
+          .expect(201)
+      ).body,
     );
     expect(criada.complemento).toBe('Loja 2');
 
@@ -248,6 +335,7 @@ describe('Empresas (e2e)', () => {
       (
         await request(app.getHttpServer())
           .patch(`/api/v1/empresas/${criada.id}`)
+          .set('Authorization', `Bearer ${tokenAdmin}`)
           .send({ complemento: '' })
           .expect(200)
       ).body,
@@ -257,7 +345,13 @@ describe('Empresas (e2e)', () => {
 
   it('PATCH /api/v1/empresas/:id com null apaga o documento', async () => {
     const criada = empresaSchema.parse(
-      (await request(app.getHttpServer()).post('/api/v1/empresas').send(payloadBase).expect(201)).body,
+      (
+        await request(app.getHttpServer())
+          .post('/api/v1/empresas')
+          .set('Authorization', `Bearer ${tokenAdmin}`)
+          .send(payloadBase)
+          .expect(201)
+      ).body,
     );
     expect(criada.documentoMascarado).toBe('**.345.678/0001-**');
 
@@ -265,6 +359,7 @@ describe('Empresas (e2e)', () => {
       (
         await request(app.getHttpServer())
           .patch(`/api/v1/empresas/${criada.id}`)
+          .set('Authorization', `Bearer ${tokenAdmin}`)
           .send({ documento: null })
           .expect(200)
       ).body,
@@ -274,12 +369,22 @@ describe('Empresas (e2e)', () => {
 
   it('PATCH /api/v1/empresas/:id retorna 422 REGRA_NEGOCIO para empresa arquivada', async () => {
     const criada = empresaSchema.parse(
-      (await request(app.getHttpServer()).post('/api/v1/empresas').send(payloadBase).expect(201)).body,
+      (
+        await request(app.getHttpServer())
+          .post('/api/v1/empresas')
+          .set('Authorization', `Bearer ${tokenAdmin}`)
+          .send(payloadBase)
+          .expect(201)
+      ).body,
     );
-    await request(app.getHttpServer()).post(`/api/v1/empresas/${criada.id}/arquivar`).expect(200);
+    await request(app.getHttpServer())
+      .post(`/api/v1/empresas/${criada.id}/arquivar`)
+      .set('Authorization', `Bearer ${tokenAdmin}`)
+      .expect(200);
 
     const resArquivada = await request(app.getHttpServer())
       .patch(`/api/v1/empresas/${criada.id}`)
+      .set('Authorization', `Bearer ${tokenAdmin}`)
       .send({ nomeFantasia: 'Tentativa' })
       .expect(422);
     expect(respostaErroSchema.parse(resArquivada.body).erro.codigo).toBe('REGRA_NEGOCIO');
@@ -287,14 +392,30 @@ describe('Empresas (e2e)', () => {
 
   it('POST /api/v1/empresas/:id/arquivar grava arquivadaEm e é idempotente ao repetir', async () => {
     const criada = empresaSchema.parse(
-      (await request(app.getHttpServer()).post('/api/v1/empresas').send(payloadBase).expect(201)).body,
+      (
+        await request(app.getHttpServer())
+          .post('/api/v1/empresas')
+          .set('Authorization', `Bearer ${tokenAdmin}`)
+          .send(payloadBase)
+          .expect(201)
+      ).body,
     );
 
     const arq1 = empresaSchema.parse(
-      (await request(app.getHttpServer()).post(`/api/v1/empresas/${criada.id}/arquivar`).expect(200)).body,
+      (
+        await request(app.getHttpServer())
+          .post(`/api/v1/empresas/${criada.id}/arquivar`)
+          .set('Authorization', `Bearer ${tokenAdmin}`)
+          .expect(200)
+      ).body,
     );
     const arq2 = empresaSchema.parse(
-      (await request(app.getHttpServer()).post(`/api/v1/empresas/${criada.id}/arquivar`).expect(200)).body,
+      (
+        await request(app.getHttpServer())
+          .post(`/api/v1/empresas/${criada.id}/arquivar`)
+          .set('Authorization', `Bearer ${tokenAdmin}`)
+          .expect(200)
+      ).body,
     );
     expect(arq1.arquivadaEm).not.toBeNull();
     expect(arq2.arquivadaEm).toBe(arq1.arquivadaEm);
@@ -302,17 +423,28 @@ describe('Empresas (e2e)', () => {
 
   it('POST /api/v1/empresas/:id/reativar retorna 409 REGISTRO_DUPLICADO quando documento conflita com outra ativa', async () => {
     const primeira = empresaSchema.parse(
-      (await request(app.getHttpServer()).post('/api/v1/empresas').send(payloadBase).expect(201)).body,
+      (
+        await request(app.getHttpServer())
+          .post('/api/v1/empresas')
+          .set('Authorization', `Bearer ${tokenAdmin}`)
+          .send(payloadBase)
+          .expect(201)
+      ).body,
     );
-    await request(app.getHttpServer()).post(`/api/v1/empresas/${primeira.id}/arquivar`).expect(200);
+    await request(app.getHttpServer())
+      .post(`/api/v1/empresas/${primeira.id}/arquivar`)
+      .set('Authorization', `Bearer ${tokenAdmin}`)
+      .expect(200);
 
     await request(app.getHttpServer())
       .post('/api/v1/empresas')
+      .set('Authorization', `Bearer ${tokenAdmin}`)
       .send({ ...payloadBase, nomeFantasia: 'Nova Ativa Mesmo CNPJ' })
       .expect(201);
 
     const resConflito = await request(app.getHttpServer())
       .post(`/api/v1/empresas/${primeira.id}/reativar`)
+      .set('Authorization', `Bearer ${tokenAdmin}`)
       .expect(409);
     expect(respostaErroSchema.parse(resConflito.body).erro.codigo).toBe('REGISTRO_DUPLICADO');
   });

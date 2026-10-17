@@ -13,7 +13,7 @@ Banco em produção: Neon (PostgreSQL). Painel e app falam só com a API; nenhum
 
 ## Estado atual
 
-Estrutura inicial pronta: monorepo, schema do banco do MVP com a primeira migration, API com health check e envelope de erro padrão, painel e app com tela inicial que verifica a conexão com a API. As funcionalidades (login, empresas, motoristas, rotas, execução) ainda não foram implementadas.
+Pronto na API: login e sessão (JWT + refresh rotativo, perfis ADMIN e MOTORISTA), cadastro de empresas e as regras de transição de status. Ainda faltam motoristas, montagem e execução de rotas, e as telas do painel e do app (hoje só verificam a conexão com a API).
 
 ## Pré-requisitos
 
@@ -41,6 +41,12 @@ cp apps/driver/.env.example apps/driver/.env.local
 
 ```bash
 pnpm --filter api db:migrate
+```
+
+Crie o primeiro administrador (usa `SEED_ADMIN_EMAIL` e `SEED_ADMIN_SENHA` do `apps/api/.env`; troque a senha de exemplo e gere um `JWT_SECRET` aleatório antes):
+
+```bash
+pnpm --filter api db:seed
 ```
 
 ```bash

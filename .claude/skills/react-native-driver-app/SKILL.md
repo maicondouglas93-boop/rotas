@@ -10,7 +10,7 @@ description: Desenvolve o aplicativo Android do motorista em React Native com Ex
 1. O app mostra e envia comandos; quem decide se a ação vale é a API. Botões exibidos por status vêm do mapa de ações de `packages/shared`.
 2. Toda ação de execução é enviada com `Idempotency-Key` (UUID gerado no momento do toque) e `ocorridoEm`. Reenvio usa a **mesma** chave.
 3. Sem rede, o comando entra na fila local e a tela mostra "Aguardando conexão" na parada; nada é dado como confirmado pelo servidor até a resposta.
-4. Tokens: refresh em `expo-secure-store`, access em memória. Logout limpa tokens, cache de consultas e fila.
+4. Tokens: refresh em `expo-secure-store`, access em memória. Logout limpa tokens, cache de consultas e fila. Renove a sessão uma chamada por vez (promessa única compartilhada): dois `/auth/refresh` simultâneos com o mesmo token derrubam a sessão por reuso.
 5. Nenhuma permissão Android sensível (localização, câmera, notificações) no MVP. Declare uma permissão só junto com a funcionalidade que a usa.
 6. Links de Waze e WhatsApp em formato `https` (universal link) vindos de `packages/shared`; sempre com tratamento de falha.
 

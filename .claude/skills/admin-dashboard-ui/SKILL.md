@@ -57,6 +57,7 @@ Páginas autenticadas são componentes cliente com TanStack Query (o access toke
 
 ### Dados
 
+- Renovação de sessão em voo único: só uma chamada a `/auth/refresh` por vez, compartilhada entre abas (Web Locks API `navigator.locks`, com fallback de uma promessa por aba). Requisições que recebem 401 esperam essa renovação e repetem uma vez; se a renovação falhar, vai para o login.
 - Chaves de consulta: `['rotas', 'lista', filtros]`, `['rotas', id]`, `['empresas', 'busca', termo]`.
 - Após mutação, invalide as chaves afetadas; não edite cache manualmente salvo em reordenação (otimista com rollback).
 - Filtros, página e ordenação ficam na URL (`useSearchParams`) para o botão voltar e o link compartilhado funcionarem.

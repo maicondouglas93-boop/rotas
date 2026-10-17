@@ -5,6 +5,9 @@ try {
   // No CI as variáveis vêm do ambiente do job.
 }
 
+process.env['JWT_SECRET'] ??= 'segredo-de-teste-local-com-pelo-menos-32-caracteres';
+process.env['LIMITE_LOGIN_POR_MINUTO'] ??= '1000';
+
 const url = process.env['DATABASE_URL'] ?? '';
 const host = (() => {
   try {

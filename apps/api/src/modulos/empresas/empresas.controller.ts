@@ -11,10 +11,11 @@ import {
   type RespostaPaginada,
 } from '@rotas/shared';
 import { ZodPipe } from '../../comum/pipes/zod.pipe.js';
+import { Perfis } from '../auth/decoradores.js';
 import { EmpresasService } from './empresas.service.js';
 
-// Rotas administrativas (receberão @Perfis('ADMIN') quando o módulo auth existir).
 @Controller('empresas')
+@Perfis('ADMIN')
 export class EmpresasController {
   constructor(private readonly empresas: EmpresasService) {}
 

@@ -22,6 +22,18 @@ export class ErroDominio extends Error {
     return new ErroDominio(CodigoErro.VALIDACAO, HttpStatus.BAD_REQUEST, 'Dados inválidos.', detalhes);
   }
 
+  static naoAutenticado(mensagem = 'Sessão inválida ou expirada. Entre novamente.'): ErroDominio {
+    return new ErroDominio(CodigoErro.NAO_AUTENTICADO, HttpStatus.UNAUTHORIZED, mensagem);
+  }
+
+  static semPermissao(mensagem = 'Você não tem permissão para esta ação.'): ErroDominio {
+    return new ErroDominio(CodigoErro.SEM_PERMISSAO, HttpStatus.FORBIDDEN, mensagem);
+  }
+
+  static trocaSenhaObrigatoria(mensagem = 'Troque sua senha para continuar.'): ErroDominio {
+    return new ErroDominio(CodigoErro.TROCA_SENHA_OBRIGATORIA, HttpStatus.FORBIDDEN, mensagem);
+  }
+
   static naoEncontrado(mensagem = 'Registro não encontrado.'): ErroDominio {
     return new ErroDominio(CodigoErro.NAO_ENCONTRADO, HttpStatus.NOT_FOUND, mensagem);
   }

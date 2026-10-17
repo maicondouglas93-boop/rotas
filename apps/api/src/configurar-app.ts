@@ -1,5 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
+import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import type { Env } from './config/env.js';
 
@@ -10,6 +11,7 @@ export function configurarApp(app: INestApplication, env: Env): void {
   const express = app as NestExpressApplication;
   express.setGlobalPrefix(PREFIXO_API);
   express.use(helmet());
+  express.use(cookieParser());
   express.enableCors({ origin: env.CORS_ORIGENS, credentials: true });
   express.set('trust proxy', 1);
   express.enableShutdownHooks();

@@ -70,6 +70,12 @@ function converter(excecao: unknown): Convertido {
         return erro(status, CodigoErro.SEM_PERMISSAO, 'Você não tem permissão para esta ação.');
       case HttpStatus.NOT_FOUND:
         return erro(status, CodigoErro.NAO_ENCONTRADO, 'Recurso não encontrado.');
+      case HttpStatus.TOO_MANY_REQUESTS:
+        return erro(
+          status,
+          CodigoErro.MUITAS_TENTATIVAS,
+          'Muitas tentativas. Aguarde um minuto e tente novamente.',
+        );
     }
     if (status < HttpStatus.INTERNAL_SERVER_ERROR) {
       return erro(status, CodigoErro.VALIDACAO, 'Requisição inválida.');

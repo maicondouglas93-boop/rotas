@@ -1,8 +1,9 @@
 import { Controller, Get, HttpCode, HttpStatus, ServiceUnavailableException } from '@nestjs/common';
+import { Publico } from '../auth/decoradores.js';
 import { SaudeService } from './saude.service.js';
 
-// Rotas públicas (receberão @Publico() quando o guard JWT global for criado).
 @Controller('saude')
+@Publico()
 export class SaudeController {
   constructor(private readonly saude: SaudeService) {}
 
