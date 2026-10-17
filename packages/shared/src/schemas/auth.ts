@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { perfilUsuarioSchema } from '../dominio/status.js';
+import { emailSchema } from './campos.js';
 
 export const ClienteAuth = {
   PAINEL: 'painel',
@@ -8,16 +9,10 @@ export const ClienteAuth = {
 export type ClienteAuth = (typeof ClienteAuth)[keyof typeof ClienteAuth];
 export const clienteAuthSchema = z.enum(ClienteAuth);
 
-const emailNormalizadoSchema = z
-  .string()
-  .trim()
-  .toLowerCase()
-  .max(254, { message: 'E-mail deve ter no máximo 254 caracteres.' })
-  .pipe(z.email({ message: 'E-mail inválido.' }));
 
 export const loginSchema = z
   .object({
-    email: emailNormalizadoSchema,
+    email: emailSchema,
     senha: z
       .string()
       .min(1, { message: 'Informe a senha.' })

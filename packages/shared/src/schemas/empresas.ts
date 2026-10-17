@@ -2,8 +2,8 @@ import { z } from 'zod';
 import { paginacaoSchema } from '../api/paginacao.js';
 import { fonteLocalizacaoSchema } from '../dominio/status.js';
 import { normalizarTelefoneBR } from '../telefone.js';
+import { booleanoQuerySchema, MENSAGEM_TELEFONE_INVALIDO, telefoneSchema } from './campos.js';
 
-const MENSAGEM_TELEFONE_INVALIDO = 'Telefone inválido.';
 const MENSAGEM_DOCUMENTO_INVALIDO = 'Documento inválido. Informe um CPF (11 dígitos) ou CNPJ (14 dígitos).';
 const MENSAGEM_COORDENADAS_JUNTAS = 'Latitude e longitude devem ser informadas juntas.';
 
@@ -38,12 +38,6 @@ function textoOpcionalAtualizacao(maximo: number) {
     .nullable()
     .optional();
 }
-
-const telefoneObrigatorioSchema = z
-  .string()
-  .trim()
-  .refine((v) => normalizarTelefoneBR(v) !== null, { message: MENSAGEM_TELEFONE_INVALIDO })
-  .transform((v) => normalizarTelefoneBR(v) ?? v);
 
 const whatsappOpcionalSchema = z
   .string()
@@ -97,7 +91,7 @@ export const criarEmpresaSchema = z
     nomeFantasia: textoObrigatorio(120, 2),
     razaoSocial: textoOpcional(200),
     documento: documentoOpcionalSchema,
-    telefone: telefoneObrigatorioSchema,
+    telefone: telefoneSchema,
     whatsapp: whatsappOpcionalSchema,
     logradouro: textoObrigatorio(200),
     numero: textoObrigatorio(50),
@@ -124,7 +118,7 @@ export const atualizarEmpresaSchema = z
     nomeFantasia: textoObrigatorio(120, 2).optional(),
     razaoSocial: textoOpcionalAtualizacao(200),
     documento: documentoAtualizacaoSchema,
-    telefone: telefoneObrigatorioSchema.optional(),
+    telefone: telefoneSchema.optional(),
     whatsapp: whatsappAtualizacaoSchema,
     logradouro: textoObrigatorio(200).optional(),
     numero: textoObrigatorio(50).optional(),
@@ -153,11 +147,7 @@ export const filtroEmpresasSchema = z
   .object({
     ...paginacaoSchema.shape,
     busca: textoOpcional(100),
-    incluirArquivadas: z
-      .enum(['true', 'false'])
-      .transform((v) => v === 'true')
-      .or(z.boolean())
-      .default(false),
+    incluirArquivadas: booleanoQuerySchema,
   })
   .strict();
 export type FiltroEmpresas = z.infer<typeof filtroEmpresasSchema>;

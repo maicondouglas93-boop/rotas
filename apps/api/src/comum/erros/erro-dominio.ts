@@ -53,4 +53,8 @@ export class ErroDominio extends Error {
   static regraNegocio(mensagem: string): ErroDominio {
     return new ErroDominio(CodigoErro.REGRA_NEGOCIO, HttpStatus.UNPROCESSABLE_ENTITY, mensagem);
   }
+
+  static registroDuplicado(mensagem: string): ErroDominio {
+    return new ErroDominio(CodigoErro.REGISTRO_DUPLICADO, HttpStatus.CONFLICT, mensagem);
+  }
 }

@@ -8,3 +8,5 @@ export * from './links.js';
 export * from './telefone.js';
 export * from './schemas/auth.js';
 export * from './schemas/empresas.js';
+export * from './schemas/campos.js';
+export * from './schemas/motoristas.js';
