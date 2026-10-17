@@ -12,7 +12,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
-import { useEnviarComando, useFilaPendente, useRota } from '../../../../../api/consultas';
+import { useEnviarComando, useRotaProjetada } from '../../../../../api/consultas';
 import { abrirExterno } from '../../../../../componentes/abrir-externo';
 import { BannerConexao } from '../../../../../componentes/banner-conexao';
 import {
@@ -30,7 +30,7 @@ import { EscolhaOcorrencia } from '../../../../../componentes/escolha-ocorrencia
 import { formatarHora } from '../../../../../componentes/formatos';
 import { Icone } from '../../../../../componentes/icone';
 import { ICONE_SERVICO } from '../../../../../componentes/servico';
-import { Status } from '../../../../../componentes/status';
+import { AguardandoEnvio, Status } from '../../../../../componentes/status';
 import { cores, espaco, raio } from '../../../../../componentes/tema';
 import { proximaParada } from '../../../../../rotas/proxima-parada';
 
@@ -46,14 +46,13 @@ type Ocorrencia = { modo: 'nao-realizar'; servico: Servico } | { modo: 'informat
 export default function TelaParada() {
   const { id, paradaId } = useLocalSearchParams<{ id: string; paradaId: string }>();
   const router = useRouter();
-  const consulta = useRota(id);
+  // Rota com os comandos ainda na fila aplicados: a próxima ação fica liberada mesmo sem sinal.
+  const { consulta, rota, pendentes, aguardando } = useRotaProjetada(id);
   const enviarComando = useEnviarComando();
-  const pendentes = useFilaPendente();
   const [ocorrencia, setOcorrencia] = useState<Ocorrencia>(null);
   const [ocorrenciaRegistrada, setOcorrenciaRegistrada] = useState<string | null>(null);
 
   if (consulta.isPending) return <Carregando />;
-  const rota = consulta.data;
   const parada = rota?.paradas.find((p) => p.id === paradaId);
   if (!rota || !parada) {
     return (
@@ -65,8 +64,8 @@ export default function TelaParada() {
   }
 
   const acoes = acoesMotoristaParada(rota.status, parada.status);
-  const ids = new Set([parada.id, ...parada.servicos.map((s) => s.id)]);
-  const aguardando = pendentes.some((c) => ids.has(c.alvoId));
+  const aguardandoParada = aguardando.has(parada.id) || parada.servicos.some((s) => aguardando.has(s.id));
+  const ocorrenciaNaFila = pendentes.some((c) => c.alvoId === parada.id && c.caminho.endsWith('/ocorrencias'));
   const servicosPendentes = parada.servicos.filter((s) => s.status === 'PENDENTE');
   const encerrada = parada.status === 'FINALIZADA' || parada.status === 'CANCELADA';
   const seguinte = encerrada && rota.status === 'EM_ANDAMENTO' ? proximaParada(rota.paradas, parada.id) : undefined;
@@ -106,14 +105,12 @@ export default function TelaParada() {
       });
     } else {
       comando(`/motorista/paradas/${parada!.id}/ocorrencias`, parada!.id, 'Ocorrência', { tipo, descricao });
-      setOcorrenciaRegistrada(`Ocorrência registrada: ${ROTULO_TIPO_OCORRENCIA[tipo]}.`);
+      setOcorrenciaRegistrada(ROTULO_TIPO_OCORRENCIA[tipo]);
     }
     setOcorrencia(null);
   }
 
-  const rodape = aguardando ? (
-    <Botao titulo="Aguardando envio…" icone="cloud-upload-outline" onPress={() => undefined} desabilitado />
-  ) : acoes.seguir ? (
+  const rodape = acoes.seguir ? (
     <Botao titulo="Ir para esta parada" icone="navigation-variant-outline" onPress={seguir} />
   ) : acoes.chegar ? (
     <Botao
@@ -137,41 +134,39 @@ export default function TelaParada() {
     <Botao titulo="Voltar para a rota" icone="format-list-numbered" variante="secundaria" onPress={() => router.back()} />
   ) : null;
 
-  const outrasAcoes = aguardando
-    ? []
-    : [
-        ...(acoes.naoRealizarServico
-          ? servicosPendentes.map((s) => (
-              <LinhaAcao
-                key={`nao-${s.id}`}
-                icone="close-circle-outline"
-                titulo={`Não foi possível: ${ROTULO_TIPO_SERVICO[s.tipo].toLowerCase()}`}
-                perigo
-                onPress={() => setOcorrencia({ modo: 'nao-realizar', servico: s })}
-              />
-            ))
-          : []),
-        ...(acoes.registrarOcorrencia
-          ? [
-              <LinhaAcao
-                key="ocorrencia"
-                icone="alert-circle-outline"
-                titulo="Registrar ocorrência"
-                onPress={() => setOcorrencia({ modo: 'informativa' })}
-              />,
-            ]
-          : []),
-        ...(acoes.voltarParaFila
-          ? [
-              <LinhaAcao
-                key="fila"
-                icone="undo-variant"
-                titulo="Voltar esta parada para a fila"
-                onPress={() => comando(`/motorista/paradas/${parada.id}/voltar-para-fila`, parada.id, 'Voltar para a fila')}
-              />,
-            ]
-          : []),
-      ];
+  const outrasAcoes = [
+    ...(acoes.naoRealizarServico
+      ? servicosPendentes.map((s) => (
+          <LinhaAcao
+            key={`nao-${s.id}`}
+            icone="close-circle-outline"
+            titulo={`Não foi possível: ${ROTULO_TIPO_SERVICO[s.tipo].toLowerCase()}`}
+            perigo
+            onPress={() => setOcorrencia({ modo: 'nao-realizar', servico: s })}
+          />
+        ))
+      : []),
+    ...(acoes.registrarOcorrencia
+      ? [
+          <LinhaAcao
+            key="ocorrencia"
+            icone="alert-circle-outline"
+            titulo="Registrar ocorrência"
+            onPress={() => setOcorrencia({ modo: 'informativa' })}
+          />,
+        ]
+      : []),
+    ...(acoes.voltarParaFila
+      ? [
+          <LinhaAcao
+            key="fila"
+            icone="undo-variant"
+            titulo="Voltar esta parada para a fila"
+            onPress={() => comando(`/motorista/paradas/${parada.id}/voltar-para-fila`, parada.id, 'Voltar para a fila')}
+          />,
+        ]
+      : []),
+  ];
 
   return (
     <>
@@ -179,9 +174,21 @@ export default function TelaParada() {
       <StatusBar style="dark" />
       <Tela rodape={rodape}>
         <BannerConexao />
-        {ocorrenciaRegistrada ? <Aviso tom="sucesso" texto={ocorrenciaRegistrada} /> : null}
+        {ocorrenciaRegistrada ? (
+          <Aviso
+            tom={ocorrenciaNaFila ? 'info' : 'sucesso'}
+            texto={
+              ocorrenciaNaFila
+                ? `Ocorrência anotada: ${ocorrenciaRegistrada}. Será enviada quando houver sinal.`
+                : `Ocorrência registrada: ${ocorrenciaRegistrada}.`
+            }
+          />
+        ) : null}
         <Cartao destaque={!encerrada && rota.status === 'EM_ANDAMENTO'}>
-          <Status tipo="parada" status={parada.status} />
+          <View style={estilos.linhaStatus}>
+            <Status tipo="parada" status={parada.status} />
+            {aguardandoParada ? <AguardandoEnvio /> : null}
+          </View>
           <Text accessibilityRole="header" style={estilos.nome}>
             {parada.nomeEmpresa}
           </Text>
@@ -211,7 +218,11 @@ export default function TelaParada() {
               </View>
               <View style={estilos.infoServico}>
                 <Text style={estilos.tipo}>{ROTULO_TIPO_SERVICO[s.tipo]}</Text>
-                {s.concluidoEm ? <Text style={estilos.hora}>às {formatarHora(s.concluidoEm)}</Text> : null}
+                {aguardando.has(s.id) ? (
+                  <AguardandoEnvio />
+                ) : s.concluidoEm ? (
+                  <Text style={estilos.hora}>às {formatarHora(s.concluidoEm)}</Text>
+                ) : null}
               </View>
               {/* O selo usa alignSelf: flex-start; o View o centraliza na linha. */}
               <View>
@@ -248,6 +259,7 @@ export default function TelaParada() {
 }
 
 const estilos = StyleSheet.create({
+  linhaStatus: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: espaco.p },
   nome: { fontSize: 26, fontWeight: '800', color: cores.texto, letterSpacing: -0.5, marginTop: 4 },
   linhaEndereco: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
   endereco: { flex: 1, fontSize: 16, color: cores.textoSecundario, lineHeight: 22 },

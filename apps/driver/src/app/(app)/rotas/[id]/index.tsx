@@ -2,13 +2,13 @@ import { acoesMotoristaRota, type Parada } from '@rotas/shared';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Alert, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import { useEnviarComando, useFilaPendente, useRota } from '../../../../api/consultas';
+import { useEnviarComando, useRotaProjetada } from '../../../../api/consultas';
 import { BannerConexao } from '../../../../componentes/banner-conexao';
 import { Aviso, BarraProgresso, Botao, Carregando, Cartao, Tela, TituloSecao } from '../../../../componentes/basicos';
 import { formatarData } from '../../../../componentes/formatos';
 import { Icone } from '../../../../componentes/icone';
 import { ChipServico } from '../../../../componentes/servico';
-import { Status } from '../../../../componentes/status';
+import { AguardandoEnvio, Status } from '../../../../componentes/status';
 import { cores, espaco, raio, sombra } from '../../../../componentes/tema';
 import { proximaParada } from '../../../../rotas/proxima-parada';
 
@@ -38,12 +38,12 @@ function Marcador({ parada, atual }: { parada: Parada; atual: boolean }) {
 export default function TelaRota() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const consulta = useRota(id);
+  // Rota com os comandos ainda na fila aplicados: o motorista segue trabalhando sem sinal.
+  const { consulta, rota: prevista, aguardando } = useRotaProjetada(id);
   const enviarComando = useEnviarComando();
-  const pendentes = useFilaPendente();
 
   if (consulta.isPending) return <Carregando texto="Abrindo a rota…" />;
-  if (consulta.isError && !consulta.data) {
+  if (!prevista) {
     return (
       <Tela>
         <Aviso tom="perigo" texto="Não foi possível abrir a rota. Ela pode ter sido transferida ou cancelada." />
@@ -52,9 +52,8 @@ export default function TelaRota() {
     );
   }
 
-  const rota = consulta.data;
+  const rota = prevista;
   const acoes = acoesMotoristaRota(rota.status);
-  const aguardando = pendentes.some((c) => c.alvoId === rota.id);
   const proxima = proximaParada(rota.paradas);
   const feitas = rota.paradas.filter((p) => p.status === 'FINALIZADA' || p.status === 'CANCELADA').length;
 
@@ -78,9 +77,7 @@ export default function TelaRota() {
     ]);
   }
 
-  const acaoPrincipal = aguardando ? (
-    <Botao titulo="Aguardando envio…" icone="cloud-upload-outline" onPress={() => undefined} desabilitado />
-  ) : acoes.confirmarRecebimento ? (
+  const acaoPrincipal = acoes.confirmarRecebimento ? (
     <Botao titulo="Confirmar recebimento" icone="clipboard-check-outline" onPress={confirmarRecebimento} />
   ) : acoes.iniciar ? (
     <Botao titulo="Iniciar rota" icone="play-circle-outline" onPress={iniciar} />
@@ -100,7 +97,10 @@ export default function TelaRota() {
         <BannerConexao />
         <Cartao>
           <View style={estilos.linhaResumo}>
-            <Status tipo="rota" status={rota.status} />
+            <View style={estilos.statusRota}>
+              <Status tipo="rota" status={rota.status} />
+              {aguardando.has(rota.id) ? <AguardandoEnvio /> : null}
+            </View>
             <View style={estilos.linhaMeta}>
               <Icone nome="calendar-blank-outline" tamanho={16} cor={cores.textoSecundario} />
               <Text style={estilos.meta}>{formatarData(rota.dataPrevista)}</Text>
@@ -112,7 +112,17 @@ export default function TelaRota() {
           </View>
           <BarraProgresso feitas={feitas} total={rota.paradas.length} />
         </Cartao>
-        {rota.status === 'CONCLUIDA' ? <Aviso tom="sucesso" icone="flag-checkered" texto="Rota concluída. Obrigado!" /> : null}
+        {rota.status === 'CONCLUIDA' ? (
+          <Aviso
+            tom="sucesso"
+            icone="flag-checkered"
+            texto={
+              aguardando.size > 0
+                ? 'Rota concluída no aparelho. Os registros serão enviados quando houver sinal.'
+                : 'Rota concluída. Obrigado!'
+            }
+          />
+        ) : null}
         {rota.status === 'CANCELADA' ? (
           <Aviso tom="perigo" texto={`Rota cancelada pela administração. ${rota.motivoCancelamento ?? ''}`} />
         ) : null}
@@ -123,9 +133,7 @@ export default function TelaRota() {
             const atual = rota.status === 'EM_ANDAMENTO' && parada.id === proxima?.id;
             const encerrada = parada.status === 'FINALIZADA' || parada.status === 'CANCELADA';
             const ultima = i === rota.paradas.length - 1;
-            const aguardandoParada = pendentes.some(
-              (c) => c.alvoId === parada.id || parada.servicos.some((s) => s.id === c.alvoId),
-            );
+            const aguardandoParada = aguardando.has(parada.id) || parada.servicos.some((s) => aguardando.has(s.id));
             return (
               <View key={parada.id} style={[estilos.item, !ultima && { paddingBottom: espaco.m }]}>
                 <View style={estilos.trilha}>
@@ -163,10 +171,7 @@ export default function TelaRota() {
                   <View style={estilos.rodapeParada}>
                     <Status tipo="parada" status={parada.status} />
                     {aguardandoParada ? (
-                      <View style={estilos.linhaMeta}>
-                        <Icone nome="cloud-upload-outline" tamanho={16} cor={cores.info} />
-                        <Text style={estilos.aguardando}>Aguardando envio…</Text>
-                      </View>
+                      <AguardandoEnvio />
                     ) : (
                       <Icone nome="chevron-right" cor={cores.textoSecundario} />
                     )}
@@ -183,6 +188,7 @@ export default function TelaRota() {
 
 const estilos = StyleSheet.create({
   linhaResumo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  statusRota: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: espaco.p },
   linhaMeta: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   meta: { fontSize: 15, fontWeight: '500', color: cores.textoSecundario },
   progresso: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 4 },
@@ -229,5 +235,4 @@ const estilos = StyleSheet.create({
   },
   textoObs: { flex: 1, fontSize: 15, fontWeight: '600', color: cores.alerta },
   rodapeParada: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 },
-  aguardando: { fontSize: 14, fontWeight: '700', color: cores.info },
 });

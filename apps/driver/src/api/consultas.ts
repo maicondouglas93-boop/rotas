@@ -1,7 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { rotaSchema, type RespostaPaginada, type Rota, type RotaResumo } from '@rotas/shared';
-import { useCallback, useSyncExternalStore } from 'react';
+import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { assinarFila, enfileirar, lerFila, type NovoComando } from '../fila/fila-comandos';
+import { projetarRota } from '../fila/projecao';
 import { requisitar } from './cliente';
 
 export const chaves = {
@@ -43,4 +44,23 @@ export function useFilaPendente() {
 
 export function useEnviarComando() {
   return useCallback((comando: NovoComando) => enfileirar(comando), []);
+}
+
+/**
+ * Rota como a tela deve mostrar: estado confirmado pelo servidor + comandos ainda na fila (para o
+ * motorista seguir trabalhando sem sinal). `aguardando` tem os ids (rota, paradas, serviços) com
+ * comando não confirmado, para a tela marcar "aguardando envio".
+ */
+export function useRotaProjetada(id: string) {
+  const consulta = useRota(id);
+  const pendentes = useFilaPendente();
+  const rota = useMemo(
+    () => (consulta.data ? projetarRota(consulta.data, pendentes) : undefined),
+    [consulta.data, pendentes],
+  );
+  const aguardando = useMemo(
+    () => new Set(pendentes.filter((c) => c.rotaId === id).map((c) => c.alvoId)),
+    [pendentes, id],
+  );
+  return { consulta, rota, pendentes, aguardando };
 }

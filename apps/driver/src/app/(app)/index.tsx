@@ -1,16 +1,18 @@
-import type { RotaResumo, StatusRota } from '@rotas/shared';
+import { useQueryClient } from '@tanstack/react-query';
+import type { Rota, RotaResumo, StatusRota } from '@rotas/shared';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { Alert, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFilaPendente, useMinhasRotas } from '../../api/consultas';
+import { chaves, useFilaPendente, useMinhasRotas } from '../../api/consultas';
 import { BannerConexao } from '../../componentes/banner-conexao';
 import { Aviso, BarraProgresso, Botao, BotaoIcone, Carregando, Tela, TituloSecao } from '../../componentes/basicos';
 import { dataPorExtenso, formatarData, primeiroNome } from '../../componentes/formatos';
 import { Icone, type NomeIcone } from '../../componentes/icone';
-import { Status } from '../../componentes/status';
+import { AguardandoEnvio, Status } from '../../componentes/status';
 import { cores, espaco, GRADIENTE_MARCA, raio, sombra } from '../../componentes/tema';
+import { projetarResumo } from '../../fila/projecao';
 import { useSessao } from '../../sessao/sessao';
 
 const GRUPOS: { titulo: string; status: StatusRota[] }[] = [
@@ -19,7 +21,7 @@ const GRUPOS: { titulo: string; status: StatusRota[] }[] = [
   { titulo: 'Recebidas — prontas para iniciar', status: ['RECEBIDA'] },
 ];
 
-function CartaoRota({ rota }: { rota: RotaResumo }) {
+function CartaoRota({ rota, aguardando }: { rota: RotaResumo; aguardando: boolean }) {
   const router = useRouter();
   const emAndamento = rota.status === 'EM_ANDAMENTO';
   // Pressable direto (sem Link asChild): o Slot do Link descarta o estilo em forma de função.
@@ -50,7 +52,10 @@ function CartaoRota({ rota }: { rota: RotaResumo }) {
         <Icone nome="chevron-right" cor={cores.textoSecundario} />
       </View>
       <View style={estilos.rodapeRota}>
-        <Status tipo="rota" status={rota.status} />
+        <View style={estilos.statusRota}>
+          <Status tipo="rota" status={rota.status} />
+          {aguardando ? <AguardandoEnvio /> : null}
+        </View>
         <Text style={estilos.meta}>
           {rota.paradasConcluidas} de {rota.totalParadas} paradas
         </Text>
@@ -79,9 +84,14 @@ export default function Inicio() {
   const insets = useSafeAreaInsets();
   const abertas = useMinhasRotas('abertas');
   const concluidas = useMinhasRotas('concluidas');
-  const pendentes = useFilaPendente().length;
+  const fila = useFilaPendente();
+  const pendentes = fila.length;
+  const queryClient = useQueryClient();
   const nome = estado.situacao === 'autenticado' ? (estado.usuario.nome ?? estado.usuario.email) : '';
-  const rotas = abertas.data?.itens ?? [];
+  // Status e progresso previstos com as ações ainda na fila (ex.: rota iniciada sem sinal).
+  const rotas = (abertas.data?.itens ?? []).map((r) =>
+    projetarResumo(r, queryClient.getQueryData<Rota>(chaves.rota(r.id)), fila),
+  );
   const aFazer = rotas.filter((r) => r.status === 'ENVIADA' || r.status === 'RECEBIDA').length;
   const emAndamento = rotas.filter((r) => r.status === 'EM_ANDAMENTO').length;
 
@@ -170,7 +180,7 @@ export default function Inicio() {
               <View key={grupo.titulo} style={estilos.grupo}>
                 <TituloSecao texto={grupo.titulo} />
                 {doGrupo.map((rota) => (
-                  <CartaoRota key={rota.id} rota={rota} />
+                  <CartaoRota key={rota.id} rota={rota} aguardando={fila.some((c) => c.rotaId === rota.id)} />
                 ))}
               </View>
             );
@@ -229,7 +239,8 @@ const estilos = StyleSheet.create({
   nomeRota: { fontSize: 18, fontWeight: '800', color: cores.texto, letterSpacing: -0.2 },
   linhaMeta: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   meta: { fontSize: 15, fontWeight: '500', color: cores.textoSecundario },
-  rodapeRota: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  rodapeRota: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espaco.p },
+  statusRota: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: espaco.p, flexShrink: 1 },
   vazio: {
     alignItems: 'center',
     gap: espaco.p,

@@ -7,6 +7,7 @@ import {
   type StatusServico,
 } from '@rotas/shared';
 import { StyleSheet, Text, View } from 'react-native';
+import { Icone } from './icone';
 import { cores, raio } from './tema';
 
 export type Tom = 'neutro' | 'info' | 'alerta' | 'sucesso' | 'perigo';
@@ -63,6 +64,16 @@ export function Status(props: Props) {
   );
 }
 
+/** Marca de item com ação feita no aparelho e ainda não confirmada pelo servidor. */
+export function AguardandoEnvio() {
+  return (
+    <View style={estilos.aguardando}>
+      <Icone nome="cloud-upload-outline" tamanho={16} cor={cores.info} />
+      <Text style={estilos.textoAguardando}>Aguardando envio</Text>
+    </View>
+  );
+}
+
 const estilos = StyleSheet.create({
   selo: {
     alignSelf: 'flex-start',
@@ -75,4 +86,6 @@ const estilos = StyleSheet.create({
   },
   ponto: { width: 7, height: 7, borderRadius: raio.pilula },
   texto: { fontSize: 14, fontWeight: '700' },
+  aguardando: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  textoAguardando: { fontSize: 14, fontWeight: '700', color: cores.info },
 });
