@@ -51,6 +51,8 @@ apps/driver/
 ```
 
 - Código que não é tela (componentes, hooks, utilitários) fica fora de `src/app/`.
+- Já existe: `src/api/cliente.ts` (token em memória, refresh no SecureStore, renovação em voo único, timeout de 15 s), `src/sessao/` (`useSessao`; usuário não sensível guardado para abrir sem rede), `src/fila/fila-comandos.ts` (todo comando passa pela fila: persistida, em ordem, mesma Idempotency-Key no reenvio, recusa da API sai com aviso), `src/api/consultas.ts` e `src/api/conexao.tsx` (NetInfo/AppState ligados ao TanStack Query e à fila), cache das consultas persistido por 24 h, telas `login`, `trocar-senha`, `(app)/index`, `(app)/rotas/[id]`, `(app)/rotas/[id]/paradas/[paradaId]`. Ações por status vêm de `acoesMotoristaRota`/`acoesMotoristaParada` (`packages/shared`).
+- Testes de componente com `jest-expo`: o mock do AsyncStorage está em `jest.setup.js`.
 - Adicione pacotes com `pnpm exec expo install <pacote>` dentro de `apps/driver` (escolhe a versão compatível com o SDK). `pnpm exec expo install --check` confere as versões.
 - Pastas `android/` e `ios/` são geradas (Continuous Native Generation): nunca edite à mão; configure por `app.json` e config plugins. Biblioteca com código nativo exige build de desenvolvimento (não roda no Expo Go).
 - Antes de usar uma API do Expo, confira a documentação da versão do SDK instalada (`expo` no `package.json`): elas mudam a cada SDK.
