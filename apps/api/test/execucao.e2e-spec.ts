@@ -1,7 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { eventoRotaSchema, respostaErroSchema, rotaResumoSchema, rotaSchema, type Rota } from '@rotas/shared';
+import {
+  eventoRotaSchema,
+  ocorrenciaRotaSchema,
+  respostaErroSchema,
+  rotaResumoSchema,
+  rotaSchema,
+  type Rota,
+} from '@rotas/shared';
 import request from 'supertest';
 import type { App } from 'supertest/types.js';
 import { z } from 'zod';
@@ -343,6 +350,38 @@ describe('Execução pelo motorista (e2e)', () => {
       await ok(comando(motorista, `paradas/${parada.id}/ocorrencias`, { tipo: 'OUTRO', descricao: 'Rua interditada por obra' }));
       const ocorrencia = await prisma.ocorrencia.findFirstOrThrow({ where: { paradaId: parada.id } });
       expect(ocorrencia).toMatchObject({ tipo: 'OUTRO', descricao: 'Rua interditada por obra', servicoId: null });
+    });
+
+    it('admin lista as ocorrências da rota com descrição; motorista não acessa', async () => {
+      const rota = await rotaIniciada();
+      const parada = rota.paradas[0]!;
+      const entrega = parada.servicos.find((s) => s.tipo === 'ENTREGA')!;
+      await ok(comando(motorista, `paradas/${parada.id}/seguir`));
+      await ok(comando(motorista, `paradas/${parada.id}/ocorrencias`, { tipo: 'OUTRO', descricao: 'Rua interditada por obra' }));
+      await ok(comando(motorista, `paradas/${parada.id}/cheguei`));
+      await ok(comando(motorista, `servicos/${entrega.id}/nao-realizar`, { tipoOcorrencia: 'CLIENTE_AUSENTE' }));
+
+      const res = await comoAdmin(api().get(`/api/v1/rotas/${rota.id}/ocorrencias`)).expect(200);
+      const lista = z.array(ocorrenciaRotaSchema).parse(res.body);
+      expect(lista).toHaveLength(2);
+      expect(lista).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            paradaId: parada.id,
+            servicoId: null,
+            tipo: 'OUTRO',
+            descricao: 'Rua interditada por obra',
+            motorista: expect.objectContaining({ id: motorista.motorista.id }),
+          }),
+          expect.objectContaining({ paradaId: parada.id, servicoId: entrega.id, tipo: 'CLIENTE_AUSENTE', descricao: null }),
+        ]),
+      );
+
+      await api()
+        .get(`/api/v1/rotas/${rota.id}/ocorrencias`)
+        .set('Authorization', `Bearer ${motorista.accessToken}`)
+        .expect(403);
+      await comoAdmin(api().get(`/api/v1/rotas/${randomUUID()}/ocorrencias`)).expect(404);
     });
 
     it('"Outro" sem descrição é 400 e ocorrência em parada pendente é 409', async () => {

@@ -17,6 +17,7 @@ import {
   type EditarRotaEntrada,
   type EventoRota,
   type FiltroRotas,
+  type OcorrenciaRota,
   type RespostaPaginada,
   type Rota,
   type RotaDuplicada,
@@ -54,6 +55,11 @@ export class RotasAdminController {
   @Get(':id/historico')
   historico(@Param('id', new ZodPipe(idRotaSchema)) id: string): Promise<EventoRota[]> {
     return this.rotas.historico(id);
+  }
+
+  @Get(':id/ocorrencias')
+  ocorrencias(@Param('id', new ZodPipe(idRotaSchema)) id: string): Promise<OcorrenciaRota[]> {
+    return this.rotas.ocorrencias(id);
   }
 
   @Post()

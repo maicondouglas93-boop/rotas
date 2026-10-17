@@ -3,11 +3,16 @@
 import {
   acoesAdminRota,
   ROTULO_EVENTO_ROTA,
+  ROTULO_TIPO_OCORRENCIA,
   ROTULO_TIPO_SERVICO,
+  tipoOcorrenciaSchema,
+  tipoServicoSchema,
+  type EventoRota,
+  type OcorrenciaRota,
   type Parada,
   type Rota,
 } from '@rotas/shared';
-import { MoreHorizontalIcon } from 'lucide-react';
+import { MoreHorizontalIcon, TriangleAlertIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -34,7 +39,9 @@ import {
   useDuplicarRota,
   useEnviarRota,
   useExcluirRota,
+  rotaEmExecucao,
   useHistoricoRota,
+  useOcorrenciasRota,
   useRota,
   useTransferirRota,
 } from '@/lib/consultas/rotas';
@@ -51,7 +58,46 @@ function Informacao({ rotulo, children }: { rotulo: string; children: React.Reac
   );
 }
 
-function LinhaParada({ parada, podeCancelar, onCancelar }: { parada: Parada; podeCancelar: boolean; onCancelar: () => void }) {
+/** O que o motorista relatou na parada: motivo, serviço afetado, descrição, hora e autor. */
+function OcorrenciasParada({ parada, ocorrencias }: { parada: Parada; ocorrencias: OcorrenciaRota[] }) {
+  if (ocorrencias.length === 0) return null;
+  return (
+    <ul className="flex flex-col gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-2.5 text-sm">
+      {ocorrencias.map((o) => {
+        const servico = o.servicoId ? parada.servicos.find((s) => s.id === o.servicoId) : undefined;
+        return (
+          <li key={o.id} className="flex items-start gap-2">
+            <TriangleAlertIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-amber-700 dark:text-amber-400" />
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <span>
+                <span className="font-medium">{ROTULO_TIPO_OCORRENCIA[o.tipo]}</span>
+                {servico ? (
+                  <span className="text-muted-foreground"> · {ROTULO_TIPO_SERVICO[servico.tipo]} não realizada</span>
+                ) : null}
+              </span>
+              {o.descricao ? <span className="break-words">“{o.descricao}”</span> : null}
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {formatarHora(o.ocorridaEm)} · {o.motorista.nome}
+              </span>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function LinhaParada({
+  parada,
+  ocorrencias,
+  podeCancelar,
+  onCancelar,
+}: {
+  parada: Parada;
+  ocorrencias: OcorrenciaRota[];
+  podeCancelar: boolean;
+  onCancelar: () => void;
+}) {
   const cancelavel = podeCancelar && (parada.status === 'PENDENTE' || parada.status === 'A_CAMINHO');
   return (
     <li className="flex gap-3 rounded-lg border p-3">
@@ -74,6 +120,7 @@ function LinhaParada({ parada, podeCancelar, onCancelar }: { parada: Parada; pod
         {parada.chegadaEm ? (
           <span className="text-xs text-muted-foreground">Chegada às {formatarHora(parada.chegadaEm)}</span>
         ) : null}
+        <OcorrenciasParada parada={parada} ocorrencias={ocorrencias} />
       </div>
       <div className="flex flex-col items-end gap-1">
         <LinksExternos whatsapp={parada.whatsapp} destino={parada} />
@@ -87,22 +134,52 @@ function LinhaParada({ parada, podeCancelar, onCancelar }: { parada: Parada; pod
   );
 }
 
-function Historico({ rotaId }: { rotaId: string }) {
-  const consulta = useHistoricoRota(rotaId);
+const UM_MINUTO_MS = 60_000;
+
+/** Complemento legível do evento: motivo da ocorrência ou serviço, empresa da parada e motivo do admin. */
+function detalheEvento(evento: EventoRota, nomesParadas: Map<string, string>): string | null {
+  const { dados } = evento;
+  const partes: string[] = [];
+  if (evento.tipo === 'OCORRENCIA_REGISTRADA') {
+    const tipo = tipoOcorrenciaSchema.safeParse(dados.tipo);
+    if (tipo.success) partes.push(ROTULO_TIPO_OCORRENCIA[tipo.data]);
+  } else if (evento.tipo === 'SERVICO_REALIZADO' || evento.tipo === 'SERVICO_NAO_REALIZADO') {
+    const tipo = tipoServicoSchema.safeParse(dados.tipo);
+    if (tipo.success) partes.push(ROTULO_TIPO_SERVICO[tipo.data]);
+  }
+  const nome = typeof dados.paradaId === 'string' ? nomesParadas.get(dados.paradaId) : undefined;
+  if (nome) partes.push(nome);
+  if (typeof dados.motivo === 'string') partes.push(dados.motivo);
+  return partes.length > 0 ? partes.join(' · ') : null;
+}
+
+function Historico({ rota }: { rota: Rota }) {
+  const consulta = useHistoricoRota(rota.id, rotaEmExecucao(rota.status));
   if (consulta.isPending) return <LinhasCarregando linhas={3} />;
   if (consulta.isError) return <ErroCarregamento erro={consulta.error} onTentarNovamente={() => consulta.refetch()} />;
+  const nomesParadas = new Map(rota.paradas.map((p) => [p.id, p.nomeEmpresa]));
   return (
-    <ol className="flex flex-col gap-2 border-l pl-4">
-      {[...consulta.data].reverse().map((evento) => (
-        <li key={evento.id} className="flex flex-col">
-          <span className="text-sm">
-            {ROTULO_EVENTO_ROTA[evento.tipo]}
-            {typeof evento.dados.motivo === 'string' ? ` — ${evento.dados.motivo}` : null}
-            {evento.autorUsuarioId === null ? <span className="text-muted-foreground"> (automático)</span> : null}
-          </span>
-          <span className="text-xs text-muted-foreground tabular-nums">{formatarDataHora(evento.criadoEm)}</span>
-        </li>
-      ))}
+    <ol className="flex flex-col gap-2.5 border-l pl-4">
+      {[...consulta.data].reverse().map((evento) => {
+        const detalhe = detalheEvento(evento, nomesParadas);
+        // Ação feita sem sinal: mostra a hora do toque e quando chegou ao servidor.
+        const sincronizadoDepois =
+          evento.ocorridoEm !== null &&
+          new Date(evento.criadoEm).getTime() - new Date(evento.ocorridoEm).getTime() > UM_MINUTO_MS;
+        return (
+          <li key={evento.id} className="flex flex-col">
+            <span className="text-sm">
+              {ROTULO_EVENTO_ROTA[evento.tipo]}
+              {evento.autorUsuarioId === null ? <span className="text-muted-foreground"> (automático)</span> : null}
+            </span>
+            {detalhe ? <span className="text-xs text-foreground/80">{detalhe}</span> : null}
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {formatarDataHora(evento.ocorridoEm ?? evento.criadoEm)}
+              {sincronizadoDepois ? ` · enviado às ${formatarHora(evento.criadoEm)}` : null}
+            </span>
+          </li>
+        );
+      })}
     </ol>
   );
 }
@@ -120,6 +197,9 @@ function ConteudoRota({ rota }: { rota: Rota }) {
   const cancelarParada = useCancelarParada();
   const fechar = () => setDialogo(null);
   const concluidas = rota.paradas.filter((p) => p.status === 'FINALIZADA' || p.status === 'CANCELADA').length;
+  const emExecucao = rotaEmExecucao(rota.status);
+  const ocorrencias = useOcorrenciasRota(rota.id, emExecucao);
+  const ocorrenciasPorParada = Map.groupBy(ocorrencias.data ?? [], (o) => o.paradaId);
 
   return (
     <ConteudoPagina>
@@ -180,15 +260,29 @@ function ConteudoRota({ rota }: { rota: Rota }) {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_18rem]">
         <section className="flex flex-col gap-3" aria-labelledby="titulo-paradas">
-          <h2 id="titulo-paradas" className="text-base font-semibold">
-            Paradas
-          </h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 id="titulo-paradas" className="text-base font-semibold">
+              Paradas
+            </h2>
+            {emExecucao ? (
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground" title="Atualiza sozinho a cada 20 segundos">
+                <span aria-hidden className="size-2 animate-pulse rounded-full bg-emerald-500" />
+                Acompanhando
+              </span>
+            ) : null}
+          </div>
           {rota.paradas.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhuma parada. Edite a rota para adicionar empresas.</p>
           ) : (
             <ol className="flex flex-col gap-2">
               {rota.paradas.map((p) => (
-                <LinhaParada key={p.id} parada={p} podeCancelar={acoes.cancelarParada} onCancelar={() => setParadaACancelar(p)} />
+                <LinhaParada
+                  key={p.id}
+                  parada={p}
+                  ocorrencias={ocorrenciasPorParada.get(p.id) ?? []}
+                  podeCancelar={acoes.cancelarParada}
+                  onCancelar={() => setParadaACancelar(p)}
+                />
               ))}
             </ol>
           )}
@@ -197,7 +291,7 @@ function ConteudoRota({ rota }: { rota: Rota }) {
           <h2 id="titulo-historico" className="text-base font-semibold">
             Histórico
           </h2>
-          <Historico rotaId={rota.id} />
+          <Historico rota={rota} />
         </section>
       </div>
 

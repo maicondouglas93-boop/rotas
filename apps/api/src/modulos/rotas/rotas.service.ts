@@ -4,6 +4,7 @@ import {
   type DuplicarRotaEntrada,
   type EventoRota,
   type FiltroRotas,
+  type OcorrenciaRota,
   type RespostaPaginada,
   type Rota,
   type RotaDuplicada,
@@ -26,8 +27,10 @@ import {
 import {
   eventoSelect,
   mapearEvento,
+  mapearOcorrencia,
   mapearRota,
   mapearRotaResumo,
+  ocorrenciaSelect,
   paraData,
   rotaResumoSelect,
 } from './rotas.mapper.js';
@@ -192,5 +195,17 @@ export class RotasService {
       take: LIMITE_EVENTOS,
     });
     return eventos.map(mapearEvento);
+  }
+
+  /** Ocorrências relatadas pelo motorista em todas as paradas da rota, da mais antiga para a mais nova. */
+  async ocorrencias(id: string): Promise<OcorrenciaRota[]> {
+    await obterRota(this.prisma, id);
+    const registros = await this.prisma.ocorrencia.findMany({
+      where: { parada: { rotaId: id } },
+      select: ocorrenciaSelect,
+      orderBy: [{ ocorridaEm: 'asc' }, { id: 'asc' }],
+      take: LIMITE_EVENTOS,
+    });
+    return registros.map(mapearOcorrencia);
   }
 }

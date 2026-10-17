@@ -3,6 +3,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   eventoRotaSchema,
+  ocorrenciaRotaSchema,
   rotaDuplicadaSchema,
   rotaSchema,
   type Rota,
@@ -27,7 +28,16 @@ export const chavesRotas = {
   lista: (filtro: FiltroListaRotas) => ['rotas', 'lista', filtro] as const,
   detalhe: (id: string) => ['rotas', id] as const,
   historico: (id: string) => ['rotas', id, 'historico'] as const,
+  ocorrencias: (id: string) => ['rotas', id, 'ocorrencias'] as const,
 };
+
+// Sem tempo real ainda: rota em execução é recarregada a cada 20 s para o painel acompanhar o motorista.
+const INTERVALO_ACOMPANHAMENTO_MS = 20_000;
+const STATUS_EM_EXECUCAO: StatusRota[] = ['ENVIADA', 'RECEBIDA', 'EM_ANDAMENTO'];
+
+export function rotaEmExecucao(status: StatusRota | undefined): boolean {
+  return status !== undefined && STATUS_EM_EXECUCAO.includes(status);
+}
 
 export function useRotas(filtro: FiltroListaRotas) {
   const p = new URLSearchParams({ pagina: String(filtro.pagina), porPagina: '20' });
@@ -49,13 +59,24 @@ export function useRota(id: string) {
   return useQuery({
     queryKey: chavesRotas.detalhe(id),
     queryFn: async () => rotaSchema.parse(await requisitar(`/rotas/${id}`)),
+    refetchInterval: (consulta) => (rotaEmExecucao(consulta.state.data?.status) ? INTERVALO_ACOMPANHAMENTO_MS : false),
   });
 }
 
-export function useHistoricoRota(id: string) {
+export function useHistoricoRota(id: string, emExecucao: boolean) {
   return useQuery({
     queryKey: chavesRotas.historico(id),
     queryFn: async () => z.array(eventoRotaSchema).parse(await requisitar(`/rotas/${id}/historico`)),
+    refetchInterval: emExecucao ? INTERVALO_ACOMPANHAMENTO_MS : false,
+  });
+}
+
+/** O que o motorista relatou em cada parada (motivo, descrição, quem e quando). */
+export function useOcorrenciasRota(id: string, emExecucao: boolean) {
+  return useQuery({
+    queryKey: chavesRotas.ocorrencias(id),
+    queryFn: async () => z.array(ocorrenciaRotaSchema).parse(await requisitar(`/rotas/${id}/ocorrencias`)),
+    refetchInterval: emExecucao ? INTERVALO_ACOMPANHAMENTO_MS : false,
   });
 }
 
@@ -81,6 +102,7 @@ function useMutacaoRota<T>(fn: (entrada: T) => Promise<unknown>) {
     onSuccess: (rota: Rota) => {
       queryClient.setQueryData(chavesRotas.detalhe(rota.id), rota);
       void queryClient.invalidateQueries({ queryKey: chavesRotas.historico(rota.id) });
+      void queryClient.invalidateQueries({ queryKey: chavesRotas.ocorrencias(rota.id) });
       return queryClient.invalidateQueries({ queryKey: [...chavesRotas.todas, 'lista'] });
     },
   });

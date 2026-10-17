@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { paginacaoSchema } from '../api/paginacao.js';
-import { tipoEventoRotaSchema } from '../dominio/historico.js';
+import { tipoEventoRotaSchema, tipoOcorrenciaSchema } from '../dominio/historico.js';
 import {
   ordemOrigemSchema,
   statusParadaSchema,
@@ -246,3 +246,22 @@ export const eventoRotaSchema = z
   })
   .strict();
 export type EventoRota = z.infer<typeof eventoRotaSchema>;
+
+/**
+ * Ocorrência relatada pelo motorista, para o painel. Fica fora de `rotaSchema` porque o app
+ * valida a rota em modo estrito: campo novo ali quebraria versões já instaladas.
+ * `descricao` é texto livre do motorista: não registrar em log.
+ */
+export const ocorrenciaRotaSchema = z
+  .object({
+    id: z.uuid(),
+    paradaId: z.uuid(),
+    servicoId: z.uuid().nullable(),
+    tipo: tipoOcorrenciaSchema,
+    descricao: z.string().nullable(),
+    ocorridaEm: z.iso.datetime(),
+    registradaEm: z.iso.datetime(),
+    motorista: z.object({ id: z.uuid(), nome: z.string() }).strict(),
+  })
+  .strict();
+export type OcorrenciaRota = z.infer<typeof ocorrenciaRotaSchema>;

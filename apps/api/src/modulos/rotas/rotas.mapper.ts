@@ -1,4 +1,4 @@
-import type { EventoRota, Rota, RotaResumo } from '@rotas/shared';
+import type { EventoRota, OcorrenciaRota, Rota, RotaResumo } from '@rotas/shared';
 import type { Prisma } from '../../generated/prisma/client.js';
 
 /** `@db.Date` chega como meia-noite UTC; a API trafega `AAAA-MM-DD`. */
@@ -168,5 +168,29 @@ export function mapearEvento(registro: Prisma.RotaEventoGetPayload<{ select: typ
     dados: dados !== null && typeof dados === 'object' && !Array.isArray(dados) ? (dados as Record<string, unknown>) : {},
     ocorridoEm: iso(registro.ocorridoEm),
     criadoEm: registro.criadoEm.toISOString(),
+  };
+}
+
+export const ocorrenciaSelect = {
+  id: true,
+  paradaId: true,
+  servicoId: true,
+  tipo: true,
+  descricao: true,
+  ocorridaEm: true,
+  registradaEm: true,
+  motorista: { select: { id: true, nome: true } },
+} satisfies Prisma.OcorrenciaSelect;
+
+export function mapearOcorrencia(registro: Prisma.OcorrenciaGetPayload<{ select: typeof ocorrenciaSelect }>): OcorrenciaRota {
+  return {
+    id: registro.id,
+    paradaId: registro.paradaId,
+    servicoId: registro.servicoId,
+    tipo: registro.tipo,
+    descricao: registro.descricao,
+    ocorridaEm: registro.ocorridaEm.toISOString(),
+    registradaEm: registro.registradaEm.toISOString(),
+    motorista: { id: registro.motorista.id, nome: registro.motorista.nome },
   };
 }
