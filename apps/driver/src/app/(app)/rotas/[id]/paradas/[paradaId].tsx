@@ -5,6 +5,7 @@ import {
   linkWhatsApp,
   ROTULO_TIPO_OCORRENCIA,
   ROTULO_TIPO_SERVICO,
+  type ComprovanteEntrada,
   type Servico,
   type TipoOcorrencia,
 } from '@rotas/shared';
@@ -26,6 +27,7 @@ import {
   Tela,
   TituloSecao,
 } from '../../../../../componentes/basicos';
+import { ComprovanteEntrega } from '../../../../../componentes/comprovante-entrega';
 import { EscolhaOcorrencia } from '../../../../../componentes/escolha-ocorrencia';
 import { formatarHora } from '../../../../../componentes/formatos';
 import { Icone } from '../../../../../componentes/icone';
@@ -51,6 +53,7 @@ export default function TelaParada() {
   const enviarComando = useEnviarComando();
   const [ocorrencia, setOcorrencia] = useState<Ocorrencia>(null);
   const [ocorrenciaRegistrada, setOcorrenciaRegistrada] = useState<string | null>(null);
+  const [entregaParaComprovar, setEntregaParaComprovar] = useState<Servico | null>(null);
 
   if (consulta.isPending) return <Carregando />;
   const parada = rota?.paradas.find((p) => p.id === paradaId);
@@ -87,6 +90,11 @@ export default function TelaParada() {
   }
 
   function concluir(servico: Servico) {
+    // Entrega abre o comprovante (foto, assinatura, nome); coleta só confirma.
+    if (servico.tipo === 'ENTREGA') {
+      setEntregaParaComprovar(servico);
+      return;
+    }
     Alert.alert(`${TEXTO_CONCLUIR[servico.tipo]}?`, `${parada!.nomeEmpresa}. Esta confirmação não pode ser desfeita pelo app.`, [
       { text: 'Voltar', style: 'cancel' },
       {
@@ -94,6 +102,18 @@ export default function TelaParada() {
         onPress: () => comando(`/motorista/servicos/${servico.id}/realizar`, servico.id, TEXTO_CONCLUIR[servico.tipo]),
       },
     ]);
+  }
+
+  function concluirEntrega(comprovante: ComprovanteEntrada | undefined) {
+    const servico = entregaParaComprovar;
+    setEntregaParaComprovar(null);
+    if (!servico) return;
+    comando(
+      `/motorista/servicos/${servico.id}/realizar`,
+      servico.id,
+      TEXTO_CONCLUIR[servico.tipo],
+      comprovante ? { comprovante } : undefined,
+    );
   }
 
   function confirmarOcorrencia(tipo: TipoOcorrencia, descricao?: string) {
@@ -253,6 +273,12 @@ export default function TelaParada() {
         rotuloConfirmar={ocorrencia?.modo === 'nao-realizar' ? 'Registrar como não realizada' : 'Registrar ocorrência'}
         onCancelar={() => setOcorrencia(null)}
         onConfirmar={confirmarOcorrencia}
+      />
+      <ComprovanteEntrega
+        visivel={entregaParaComprovar !== null}
+        empresa={parada.nomeEmpresa}
+        onCancelar={() => setEntregaParaComprovar(null)}
+        onConfirmar={concluirEntrega}
       />
     </>
   );

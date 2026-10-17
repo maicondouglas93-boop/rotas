@@ -1,8 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   type ComandoMotorista,
   type FiltroRotasMotorista,
   type NaoRealizarServicoEntrada,
+  type RealizarServicoEntrada,
   type RegistrarOcorrenciaEntrada,
   type RespostaPaginada,
   type Rota,
@@ -10,7 +12,9 @@ import {
 } from '@rotas/shared';
 import { ErroDominio } from '../../comum/erros/erro-dominio.js';
 import { IdempotenciaService } from '../../comum/idempotencia/idempotencia.js';
+import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { ARMAZENAMENTO, chaveComprovante, type ArmazenamentoArquivos } from '../armazenamento/armazenamento.js';
 import type { UsuarioAutenticado } from '../auth/tipos.js';
 import {
   paradaDeveFinalizar,
@@ -46,9 +50,12 @@ function contexto(usuario: UsuarioAutenticado, dados: ComandoMotorista): Context
  */
 @Injectable()
 export class ExecucaoService {
+  private readonly logger = new Logger(ExecucaoService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly idempotencia: IdempotenciaService,
+    @Inject(ARMAZENAMENTO) private readonly armazenamento: ArmazenamentoArquivos,
   ) {}
 
   async listar(usuario: UsuarioAutenticado, filtro: FiltroRotasMotorista): Promise<RespostaPaginada<RotaResumo>> {
@@ -173,25 +180,50 @@ export class ExecucaoService {
     });
   }
 
-  realizarServico(usuario: UsuarioAutenticado, servicoId: string, dados: ComandoMotorista, chave: string) {
+  async realizarServico(usuario: UsuarioAutenticado, servicoId: string, dados: RealizarServicoEntrada, chave: string) {
     const ctx = contexto(usuario, dados);
-    return this.idempotencia.executar(usuario.usuarioId, chave, `realizar:${servicoId}`, async (tx) => {
-      const { rota, parada, servico } = await this.servicoDoMotorista(tx, ctx, servicoId);
-      if (servico.status === 'REALIZADO') return mapearRota(rota);
-      const destino = this.exigir(transicaoServico(servico.status, 'REALIZAR', ATOR, parada.status));
+    const comprovante = dados.comprovante;
+    // A foto vai para o armazenamento antes da transação (sem E/S externa dentro dela) e é apagada
+    // se o comando não chegar a usá-la (repetição, transição recusada ou erro).
+    const foto = comprovante?.fotoJpegBase64 ? Buffer.from(comprovante.fotoJpegBase64, 'base64') : null;
+    const fotoChave = foto ? await this.salvarFoto(ctx, servicoId, foto) : null;
+    let fotoUsada = false;
 
-      await tx.servico.update({
-        where: { id: servicoId },
-        data: { status: destino, executadoPorMotoristaId: ctx.motoristaId, concluidoEm: new Date() },
+    try {
+      return await this.idempotencia.executar(usuario.usuarioId, chave, `realizar:${servicoId}`, async (tx) => {
+        const { rota, parada, servico } = await this.servicoDoMotorista(tx, ctx, servicoId);
+        if (servico.status === 'REALIZADO') return mapearRota(rota);
+        const destino = this.exigir(transicaoServico(servico.status, 'REALIZAR', ATOR, parada.status));
+
+        await tx.servico.update({
+          where: { id: servicoId },
+          data: { status: destino, executadoPorMotoristaId: ctx.motoristaId, concluidoEm: new Date() },
+        });
+        if (comprovante) {
+          await tx.comprovante.create({
+            data: {
+              servicoId,
+              motoristaId: ctx.motoristaId,
+              nomeRecebedor: comprovante.nomeRecebedor ?? null,
+              ...(comprovante.assinatura ? { assinatura: comprovante.assinatura as Prisma.InputJsonValue } : {}),
+              fotoChave,
+              fotoBytes: foto?.length ?? null,
+            },
+          });
+          fotoUsada = fotoChave !== null;
+        }
+        await this.evento(tx, ctx, rota.id, 'SERVICO_REALIZADO', servico.status, destino, {
+          paradaId: parada.id,
+          servicoId,
+          tipo: servico.tipo,
+          comprovante: comprovante !== undefined,
+        });
+        await this.concluirSePreciso(tx, ctx, rota.id, parada.id);
+        return mapearRota(await obterRota(tx, rota.id));
       });
-      await this.evento(tx, ctx, rota.id, 'SERVICO_REALIZADO', servico.status, destino, {
-        paradaId: parada.id,
-        servicoId,
-        tipo: servico.tipo,
-      });
-      await this.concluirSePreciso(tx, ctx, rota.id, parada.id);
-      return mapearRota(await obterRota(tx, rota.id));
-    });
+    } finally {
+      if (fotoChave && !fotoUsada) await this.apagarFoto(fotoChave);
+    }
   }
 
   naoRealizarServico(usuario: UsuarioAutenticado, servicoId: string, dados: NaoRealizarServicoEntrada, chave: string) {
@@ -266,6 +298,24 @@ export class ExecucaoService {
   }
 
   // ---------- apoio ----------
+
+  /** Grava a foto com chave aleatória na pasta da rota do serviço; serviço de outro motorista não grava nada. */
+  private async salvarFoto(ctx: Contexto, servicoId: string, foto: Buffer): Promise<string | null> {
+    const servico = await this.prisma.servico.findFirst({
+      where: { id: servicoId, parada: { rota: { motoristaId: ctx.motoristaId } } },
+      select: { parada: { select: { rotaId: true } } },
+    });
+    if (!servico) return null;
+    const chave = chaveComprovante(servico.parada.rotaId, randomUUID());
+    await this.armazenamento.salvar(chave, foto);
+    return chave;
+  }
+
+  private async apagarFoto(chave: string): Promise<void> {
+    await this.armazenamento.apagar(chave).catch((erro: unknown) => {
+      this.logger.warn(`Foto de comprovante não usada ficou no armazenamento: ${erro instanceof Error ? erro.message : 'erro'}`);
+    });
+  }
 
   private exigir<T>(resultado: { ok: true; valor: T } | { ok: false; motivo: string }): NonNullable<T> {
     if (!resultado.ok) throw ErroDominio.transicaoInvalida(resultado.motivo);

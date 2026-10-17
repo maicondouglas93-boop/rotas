@@ -10,6 +10,10 @@ import {
   sufixo,
 } from './apoio';
 
+/** Menor JPEG válido (1×1). */
+const JPEG_MINIMO =
+  '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=';
+
 const paradaNaTela = (page: Page, empresa: string) =>
   page.getByRole('region', { name: 'Paradas' }).getByRole('listitem').filter({ hasText: empresa }).first();
 
@@ -83,9 +87,27 @@ test('admin cadastra, monta e envia a rota e acompanha a execução do motorista
   await test.step('segunda parada e conclusão automática da rota', async () => {
     await comandoMotorista(request, token, `paradas/${p2!.id}/seguir`);
     await comandoMotorista(request, token, `paradas/${p2!.id}/cheguei`);
-    await comandoMotorista(request, token, `servicos/${p2!.servicos[0]!.id}/realizar`);
+    await comandoMotorista(request, token, `servicos/${p2!.servicos[0]!.id}/realizar`, {
+      comprovante: {
+        nomeRecebedor: 'Maria Souza',
+        assinatura: { largura: 300, altura: 150, tracos: [[20, 100, 80, 40, 140, 110, 220, 50]] },
+        fotoJpegBase64: JPEG_MINIMO,
+      },
+    });
     await expect(titulo).toContainText('Concluída');
     await expect(page.getByText('2/2 paradas concluídas')).toBeVisible();
+  });
+
+  await test.step('comprovante da entrega: foto, assinatura e nome de quem recebeu', async () => {
+    await paradaNaTela(page, mercado).getByRole('button', { name: 'Comprovante' }).click();
+    const dialogo = page.getByRole('dialog', { name: 'Comprovante de entrega' });
+    await expect(dialogo).toContainText('Recebido por Maria Souza');
+    await expect(dialogo.getByRole('img', { name: 'Assinatura de quem recebeu' })).toBeVisible();
+    const foto = dialogo.getByRole('img', { name: `Foto da entrega em ${mercado}` });
+    await expect(foto).toBeVisible();
+    // A foto carregou de verdade pelo link assinado (não é só a tag na tela).
+    await expect.poll(() => foto.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+    await page.keyboard.press('Escape');
   });
 
   await test.step('histórico conta o que aconteceu, com o motivo e a empresa', async () => {

@@ -3,6 +3,7 @@ import { APP_FILTER } from '@nestjs/core';
 import { ExcecoesFilter } from './comum/filtros/excecoes.filter.js';
 import { requestIdMiddleware } from './comum/request-id.middleware.js';
 import { ConfigModule } from './config/config.module.js';
+import { ArmazenamentoModule } from './modulos/armazenamento/armazenamento.module.js';
 import { AuthModule } from './modulos/auth/auth.module.js';
 import { EmpresasModule } from './modulos/empresas/empresas.module.js';
 import { ExecucaoModule } from './modulos/execucao/execucao.module.js';
@@ -18,6 +19,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     ConfigModule,
     PrismaModule,
     AuthModule,
+    ArmazenamentoModule,
     SaudeModule,
     EmpresasModule,
     MotoristasModule,

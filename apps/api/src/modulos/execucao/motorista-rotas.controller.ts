@@ -6,10 +6,12 @@ import {
   idRotaSchema,
   idServicoSchema,
   naoRealizarServicoSchema,
+  realizarServicoSchema,
   registrarOcorrenciaSchema,
   type ComandoMotorista,
   type FiltroRotasMotorista,
   type NaoRealizarServicoEntrada,
+  type RealizarServicoEntrada,
   type RegistrarOcorrenciaEntrada,
   type RespostaPaginada,
   type Rota,
@@ -112,7 +114,7 @@ export class MotoristaRotasController {
   @HttpCode(HttpStatus.OK)
   realizar(
     @Param('id', new ZodPipe(idServicoSchema)) id: string,
-    @Body(corpoComando) dados: ComandoMotorista,
+    @Body(new ZodPipe(realizarServicoSchema)) dados: RealizarServicoEntrada,
     @ChaveIdempotencia() chave: string,
     @UsuarioAtual() usuario: UsuarioAutenticado,
   ): Promise<Rota> {

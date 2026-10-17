@@ -15,6 +15,7 @@ const envBase: Env = {
   REFRESH_DIAS: 30,
   COOKIE_DOMINIO: undefined,
   LIMITE_LOGIN_POR_MINUTO: 5,
+  ARMAZENAMENTO_PASTA: '.armazenamento',
 };
 
 const USUARIO_ID = '00000000-0000-4000-8000-000000000010';

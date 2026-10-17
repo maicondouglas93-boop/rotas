@@ -9,6 +9,7 @@ import {
   tipoServicoSchema,
 } from '../dominio/status.js';
 import { buscaSchema } from './campos.js';
+import { assinaturaSchema } from './execucao.js';
 
 export const MAXIMO_PARADAS_POR_ROTA = 100;
 
@@ -265,3 +266,21 @@ export const ocorrenciaRotaSchema = z
   })
   .strict();
 export type OcorrenciaRota = z.infer<typeof ocorrenciaRotaSchema>;
+
+/**
+ * Comprovante de serviço para o painel. `fotoUrl` é um link assinado de curta duração (caminho da API
+ * começando em `/api/v1`, ou URL completa do armazenamento). Dados pessoais: só o admin acessa.
+ */
+export const comprovanteRotaSchema = z
+  .object({
+    id: z.uuid(),
+    servicoId: z.uuid(),
+    paradaId: z.uuid(),
+    nomeRecebedor: z.string().nullable(),
+    assinatura: assinaturaSchema.nullable(),
+    fotoUrl: z.string().nullable(),
+    registradoEm: z.iso.datetime(),
+    motorista: z.object({ id: z.uuid(), nome: z.string() }).strict(),
+  })
+  .strict();
+export type ComprovanteRota = z.infer<typeof comprovanteRotaSchema>;

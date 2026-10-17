@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   EventoTempoReal,
+  type ComprovanteRota,
   type CriarRotaEntrada,
   type DuplicarRotaEntrada,
   type EventoRota,
@@ -14,6 +15,7 @@ import {
 import { ErroDominio } from '../../comum/erros/erro-dominio.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { ARMAZENAMENTO, VALIDADE_LINK_SEGUNDOS, type ArmazenamentoArquivos } from '../armazenamento/armazenamento.js';
 import type { UsuarioAutenticado } from '../auth/tipos.js';
 import { anotarEventoTempoReal } from '../tempo-real/coletor.js';
 import { transicaoRota } from './dominio/transicoes.js';
@@ -27,7 +29,9 @@ import {
   travarRota,
 } from './rotas.apoio.js';
 import {
+  comprovanteSelect,
   eventoSelect,
+  mapearComprovante,
   mapearEvento,
   mapearOcorrencia,
   mapearRota,
@@ -41,7 +45,10 @@ const LIMITE_EVENTOS = 1000;
 
 @Injectable()
 export class RotasService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(ARMAZENAMENTO) private readonly armazenamento: ArmazenamentoArquivos,
+  ) {}
 
   async listar(filtro: FiltroRotas): Promise<RespostaPaginada<RotaResumo>> {
     const where: Prisma.RotaWhereInput = {
@@ -199,6 +206,19 @@ export class RotasService {
       take: LIMITE_EVENTOS,
     });
     return eventos.map(mapearEvento);
+  }
+
+  /** Comprovantes dos serviços da rota, com link de foto assinado de curta duração (só o admin chega aqui). */
+  async comprovantes(id: string): Promise<ComprovanteRota[]> {
+    await obterRota(this.prisma, id);
+    const registros = await this.prisma.comprovante.findMany({
+      where: { servico: { parada: { rotaId: id } } },
+      select: comprovanteSelect,
+      orderBy: [{ registradoEm: 'asc' }, { id: 'asc' }],
+    });
+    return registros.map((r) =>
+      mapearComprovante(r, r.fotoChave ? this.armazenamento.urlLeitura(r.fotoChave, VALIDADE_LINK_SEGUNDOS) : null),
+    );
   }
 
   /** Ocorrências relatadas pelo motorista em todas as paradas da rota, da mais antiga para a mais nova. */

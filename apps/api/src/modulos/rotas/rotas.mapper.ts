@@ -1,4 +1,4 @@
-import type { EventoRota, OcorrenciaRota, Rota, RotaResumo } from '@rotas/shared';
+import { assinaturaSchema, type ComprovanteRota, type EventoRota, type OcorrenciaRota, type Rota, type RotaResumo } from '@rotas/shared';
 import type { Prisma } from '../../generated/prisma/client.js';
 
 /** `@db.Date` chega como meia-noite UTC; a API trafega `AAAA-MM-DD`. */
@@ -191,6 +191,35 @@ export function mapearOcorrencia(registro: Prisma.OcorrenciaGetPayload<{ select:
     descricao: registro.descricao,
     ocorridaEm: registro.ocorridaEm.toISOString(),
     registradaEm: registro.registradaEm.toISOString(),
+    motorista: { id: registro.motorista.id, nome: registro.motorista.nome },
+  };
+}
+
+export const comprovanteSelect = {
+  id: true,
+  servicoId: true,
+  nomeRecebedor: true,
+  assinatura: true,
+  fotoChave: true,
+  registradoEm: true,
+  servico: { select: { paradaId: true } },
+  motorista: { select: { id: true, nome: true } },
+} satisfies Prisma.ComprovanteSelect;
+
+/** `fotoUrl` vem pronto (link assinado gerado na hora pelo armazenamento). */
+export function mapearComprovante(
+  registro: Prisma.ComprovanteGetPayload<{ select: typeof comprovanteSelect }>,
+  fotoUrl: string | null,
+): ComprovanteRota {
+  const assinatura = assinaturaSchema.safeParse(registro.assinatura);
+  return {
+    id: registro.id,
+    servicoId: registro.servicoId,
+    paradaId: registro.servico.paradaId,
+    nomeRecebedor: registro.nomeRecebedor,
+    assinatura: assinatura.success ? assinatura.data : null,
+    fotoUrl,
+    registradoEm: registro.registradoEm.toISOString(),
     motorista: { id: registro.motorista.id, nome: registro.motorista.nome },
   };
 }

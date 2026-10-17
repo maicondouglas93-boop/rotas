@@ -12,6 +12,7 @@ import {
   versaoQuerySchema,
   type CancelarEntrada,
   type ComandoComVersao,
+  type ComprovanteRota,
   type CriarRotaEntrada,
   type DuplicarRotaEntrada,
   type EditarRotaEntrada,
@@ -55,6 +56,11 @@ export class RotasAdminController {
   @Get(':id/historico')
   historico(@Param('id', new ZodPipe(idRotaSchema)) id: string): Promise<EventoRota[]> {
     return this.rotas.historico(id);
+  }
+
+  @Get(':id/comprovantes')
+  comprovantes(@Param('id', new ZodPipe(idRotaSchema)) id: string): Promise<ComprovanteRota[]> {
+    return this.rotas.comprovantes(id);
   }
 
   @Get(':id/ocorrencias')

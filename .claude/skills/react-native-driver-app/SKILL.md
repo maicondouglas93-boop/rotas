@@ -117,7 +117,7 @@ Links `https://waze.com/ul?...` e `https://wa.me/...` abrem o app quando instala
 - MVP: `android.permissions: []` em `app.json` (só as permissões mínimas). Não deixe permissões que o app não usa — a Play Store exige justificativa para permissões sensíveis.
 - `android.package` atual (`br.com.rotas.motorista`) é provisório: defina o definitivo antes do primeiro envio à Play Store, porque ele não pode ser trocado depois.
 - **Etapa 2 — notificações:** `expo-notifications`, permissão `POST_NOTIFICATIONS` (Android 13+) pedida após o login com explicação; token do dispositivo registrado na API.
-- **Etapa 2 — câmera/assinatura:** pedir câmera só ao abrir o comprovante; reencodar a imagem antes do envio (remove EXIF).
+- **Câmera/assinatura (feito):** `src/componentes/comprovante-entrega.tsx` abre ao tocar "Entrega concluída"; câmera pedida só ao fotografar (`expo-image-picker`, permissão `CAMERA` em `app.json`, sem galeria nem microfone); foto reduzida para 1280 px e reencodada em JPEG (`expo-image-manipulator`, sem EXIF/GPS, até 1,5 MB); assinatura em traços vetoriais (`area-assinatura.tsx`, `react-native-svg`). Tudo opcional e enviado no mesmo comando `realizar` (vai na fila offline). Coleta continua com confirmação simples.
 - **Etapa 2 — localização:** primeiro em primeiro plano durante `EM_ANDAMENTO`. Segundo plano (`expo-location` + `expo-task-manager`) só com aprovação, aviso em destaque antes do pedido do sistema, serviço em primeiro plano com notificação persistente e declaração no Play Console. Parar a coleta ao concluir/cancelar a rota ou no logout.
 
 ## UX de campo

@@ -105,6 +105,7 @@ Motorista não vê rota em `RASCUNHO` nem rota transferida para outro motorista.
 - Bucket privado; chave de objeto aleatória (`comprovantes/<rotaId>/<uuid>.jpg`); nome original do arquivo não é usado.
 - Reencodar a foto no app antes do envio (remove EXIF, inclusive GPS do arquivo).
 - Leitura pelo painel com URL assinada de ~5 minutos, gerada sob demanda para ADMIN.
+- Implementação atual (ADR 0001): a foto vai em base64 no próprio comando "serviço realizado" (fila offline e idempotência num passo só) e fica atrás de `ArmazenamentoArquivos`; em dev/teste é o disco servido por `GET /api/v1/arquivos/...` com HMAC e prazo. Antes de publicar, trocar por bucket privado (S3/R2) com URL pré-assinada.
 
 ## LGPD — aplicação no projeto
 

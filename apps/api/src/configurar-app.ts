@@ -12,6 +12,8 @@ export function configurarApp(app: INestApplication, env: Env): void {
   const express = app as NestExpressApplication;
   express.setGlobalPrefix(PREFIXO_API);
   express.use(helmet());
+  // Comando "serviço realizado" pode trazer a foto do comprovante em base64 (até ~1,5 MB).
+  express.useBodyParser('json', { limit: '3mb' });
   express.use(cookieParser());
   express.enableCors({ origin: env.CORS_ORIGENS, credentials: true });
   express.useWebSocketAdapter(new AdaptadorTempoReal(app, env.CORS_ORIGENS));

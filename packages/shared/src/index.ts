@@ -15,3 +15,4 @@ export * from './schemas/execucao.js';
 export * from './dominio/rotulos.js';
 export * from './dominio/acoes.js';
 export * from './schemas/painel.js';
+export * from './assinatura.js';

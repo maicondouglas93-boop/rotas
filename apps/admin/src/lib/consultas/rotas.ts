@@ -2,6 +2,7 @@
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  comprovanteRotaSchema,
   eventoRotaSchema,
   ocorrenciaRotaSchema,
   rotaDuplicadaSchema,
@@ -30,6 +31,7 @@ export const chavesRotas = {
   detalhe: (id: string) => ['rotas', id] as const,
   historico: (id: string) => ['rotas', id, 'historico'] as const,
   ocorrencias: (id: string) => ['rotas', id, 'ocorrencias'] as const,
+  comprovantes: (id: string) => ['rotas', id, 'comprovantes'] as const,
 };
 
 const STATUS_EM_EXECUCAO: StatusRota[] = ['ENVIADA', 'RECEBIDA', 'EM_ANDAMENTO'];
@@ -69,6 +71,16 @@ export function useHistoricoRota(id: string, emExecucao: boolean) {
   return useQuery({
     queryKey: chavesRotas.historico(id),
     queryFn: async () => z.array(eventoRotaSchema).parse(await requisitar(`/rotas/${id}/historico`)),
+    refetchInterval: intervaloAcompanhamento(conexao, emExecucao),
+  });
+}
+
+/** Comprovantes de entrega (foto por link assinado de 5 min, assinatura e nome de quem recebeu). */
+export function useComprovantesRota(id: string, emExecucao: boolean) {
+  const conexao = useEstadoTempoReal();
+  return useQuery({
+    queryKey: chavesRotas.comprovantes(id),
+    queryFn: async () => z.array(comprovanteRotaSchema).parse(await requisitar(`/rotas/${id}/comprovantes`)),
     refetchInterval: intervaloAcompanhamento(conexao, emExecucao),
   });
 }

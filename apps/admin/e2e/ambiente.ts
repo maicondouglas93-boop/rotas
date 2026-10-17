@@ -1,3 +1,4 @@
+import os from 'node:os';
 import path from 'node:path';
 
 // Ambiente dos testes E2E do painel: API e painel próprios (portas 4100 e 3100), no banco de teste.
@@ -31,6 +32,8 @@ export const ambienteApi: Record<string, string> = {
   JWT_SECRET: process.env['JWT_SECRET'] ?? 'segredo-de-teste-local-com-pelo-menos-32-caracteres',
   LIMITE_LOGIN_POR_MINUTO: '1000',
   LOG_LEVEL: 'error',
+  // Fotos de comprovante dos testes fora do repositório.
+  ARMAZENAMENTO_PASTA: path.join(os.tmpdir(), 'rotas-painel-e2e-arquivos'),
 };
 
 /** Administrador criado pelo seed antes dos testes (só existe no banco de teste). */

@@ -35,6 +35,55 @@ export const registrarOcorrenciaSchema = z
   .refine((d) => descricaoSuficiente(d.tipo, d.descricao), { message: MENSAGEM_DESCRICAO_OUTRO, path: ['descricao'] });
 export type RegistrarOcorrenciaEntrada = z.infer<typeof registrarOcorrenciaSchema>;
 
+/** Tamanho máximo da foto do comprovante (JPEG já reduzido no app). */
+export const LIMITE_FOTO_COMPROVANTE_BYTES = 1_500_000;
+
+/**
+ * Assinatura como traços no tamanho da área de desenho: cada traço é [x1, y1, x2, y2, …] em pixels
+ * inteiros. Vetor pequeno, sem imagem; o painel desenha de novo em SVG.
+ */
+export const assinaturaSchema = z
+  .object({
+    largura: z.number().int().min(50).max(4000),
+    altura: z.number().int().min(50).max(4000),
+    tracos: z
+      .array(
+        z
+          .array(z.number().int().min(0).max(4000))
+          .min(2)
+          .max(4000)
+          .refine((t) => t.length % 2 === 0, { message: 'Traço com coordenada incompleta.' }),
+      )
+      .min(1, { message: 'A assinatura está vazia.' })
+      .max(300),
+  })
+  .strict();
+export type Assinatura = z.infer<typeof assinaturaSchema>;
+
+/** Comprovante enviado junto com "serviço realizado": foto, assinatura e/ou nome de quem recebeu. */
+export const comprovanteEntradaSchema = z
+  .object({
+    nomeRecebedor: z.string().trim().min(2, { message: 'Nome de quem recebeu muito curto.' }).max(120).optional(),
+    assinatura: assinaturaSchema.optional(),
+    fotoJpegBase64: z
+      .base64({ message: 'Foto inválida.' })
+      .max(Math.ceil(LIMITE_FOTO_COMPROVANTE_BYTES / 3) * 4, { message: 'Foto grande demais.' })
+      // Todo JPEG começa com FF D8 FF, que em base64 é "/9j/".
+      .refine((v) => v.startsWith('/9j/'), { message: 'A foto precisa ser JPEG.' })
+      .optional(),
+  })
+  .strict()
+  .refine((c) => c.nomeRecebedor !== undefined || c.assinatura !== undefined || c.fotoJpegBase64 !== undefined, {
+    message: 'Informe a foto, a assinatura ou o nome de quem recebeu.',
+  });
+export type ComprovanteEntrada = z.infer<typeof comprovanteEntradaSchema>;
+
+/** REALIZAR: comprovante opcional, gravado na mesma transação do serviço. */
+export const realizarServicoSchema = z
+  .object({ ocorridoEm: ocorridoEmSchema, comprovante: comprovanteEntradaSchema.optional() })
+  .strict();
+export type RealizarServicoEntrada = z.infer<typeof realizarServicoSchema>;
+
 /** NAO_REALIZAR: a ocorrência é obrigatória e criada junto. */
 export const naoRealizarServicoSchema = z
   .object({ tipoOcorrencia: tipoOcorrenciaSchema, descricao: descricaoOcorrenciaSchema, ocorridoEm: ocorridoEmSchema })

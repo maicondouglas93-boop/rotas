@@ -59,7 +59,7 @@ Esboço das entidades e relações; os valores de status estão em `delivery-dom
 | `ComandoProcessado` | usuarioId, chave, statusHttp, corpo Json, criadoEm | `@@id([usuarioId, chave])`; limpeza após 7 dias |
 | `Base` (opcional) | nome, endereço, latitude, longitude | ponto de partida das estimativas (`maps-route-planning`) |
 
-Etapa 2: `Comprovante` (servicoId, nomeRecebedor, chaves de foto/assinatura no storage, registradoEm), `PosicaoMotorista` (motoristaId, rotaId, lat, lng, precisaoM, capturadaEm), `RotaModelo` + `RotaModeloParada` para recorrência.
+Já existe: `Comprovante` (um por serviço: `nomeRecebedor`, `assinatura` em JSON, `fotoChave`/`fotoBytes` no armazenamento, `registradoEm`; migration `comprovantes`). Etapa 2: `PosicaoMotorista` (motoristaId, rotaId, lat, lng, precisaoM, capturadaEm), `RotaModelo` + `RotaModeloParada` para recorrência.
 
 ### Índices mínimos
 

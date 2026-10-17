@@ -20,6 +20,7 @@ Validadas na inicialização por `src/config/env.ts`: a API não sobe se faltar 
 | `REFRESH_DIAS` | não | não | `30` | validade do refresh token e do cookie `rotas_refresh` em dias |
 | `COOKIE_DOMINIO` | não | não | `.exemplo.com.br` | domínio opcional do cookie `rotas_refresh` quando painel e API estão em subdomínios |
 | `LIMITE_LOGIN_POR_MINUTO` | não | não | `5` (`1000` em `.env.test`) | limite de tentativas por IP + e-mail por minuto em `POST /api/v1/auth/login` (além do teto de 60/min por IP) |
+| `ARMAZENAMENTO_PASTA` | não | não | `.armazenamento` | pasta das fotos de comprovante em dev/teste (os e2e usam uma pasta temporária). Não serve para produção: no Render o disco é apagado a cada deploy (`docs/adr/0001-armazenamento-comprovantes.md`) |
 | `SEED_ADMIN_EMAIL` | no seed | não | `admin@rotas.local` | e-mail do administrador inicial criado por `prisma/seed.ts` |
 | `SEED_ADMIN_SENHA` | no seed | sim | senha de 8–128 caracteres | senha do administrador inicial criado por `prisma/seed.ts` (recusa `NODE_ENV=production`) |
 | `RENDER_GIT_COMMIT` | não | não | definida pela Render | versão exibida em `/saude` |

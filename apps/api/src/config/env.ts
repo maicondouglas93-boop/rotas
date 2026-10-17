@@ -24,6 +24,9 @@ const esquemaEnv = z.object({
     .transform((valor) => (valor === '' ? undefined : valor))
     .optional(),
   LIMITE_LOGIN_POR_MINUTO: z.coerce.number().int().min(1).default(5),
+  // Fotos de comprovante (docs/adr/0001-armazenamento-comprovantes.md). Disco só em dev/teste:
+  // no Render o disco é apagado a cada deploy.
+  ARMAZENAMENTO_PASTA: z.string().trim().min(1).default('.armazenamento'),
 });
 
 export type Env = z.infer<typeof esquemaEnv>;

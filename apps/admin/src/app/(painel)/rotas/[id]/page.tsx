@@ -7,6 +7,7 @@ import {
   ROTULO_TIPO_SERVICO,
   tipoOcorrenciaSchema,
   tipoServicoSchema,
+  type ComprovanteRota,
   type EventoRota,
   type OcorrenciaRota,
   type Parada,
@@ -21,6 +22,7 @@ import { BarraProgresso } from '@/components/comum/barra-progresso';
 import { LinksExternos } from '@/components/comum/links-externos';
 import { CabecalhoPagina, ConteudoPagina, ErroCarregamento, LinhasCarregando } from '@/components/comum/pagina';
 import { StatusBadge } from '@/components/comum/status-badge';
+import { BotaoComprovante } from '@/components/rotas/comprovante';
 import {
   DialogoConfirmar,
   DialogoDuplicar,
@@ -41,6 +43,7 @@ import {
   useEnviarRota,
   useExcluirRota,
   rotaEmExecucao,
+  useComprovantesRota,
   useHistoricoRota,
   useOcorrenciasRota,
   useRota,
@@ -115,15 +118,19 @@ function Marcador({ parada, atual }: { parada: Parada; atual: boolean }) {
 }
 
 function LinhaParada({
+  rotaId,
   parada,
   ocorrencias,
+  comprovantes,
   atual,
   ultima,
   podeCancelar,
   onCancelar,
 }: {
+  rotaId: string;
   parada: Parada;
   ocorrencias: OcorrenciaRota[];
+  comprovantes: Map<string, ComprovanteRota>;
   atual: boolean;
   ultima: boolean;
   podeCancelar: boolean;
@@ -160,7 +167,12 @@ function LinhaParada({
             {parada.servicos.map((s) => (
               <span key={s.id} className="flex items-center gap-1">
                 {ROTULO_TIPO_SERVICO[s.tipo]}: <StatusBadge tipo="servico" status={s.status} />
-                {s.concluidoEm ? <span className="text-xs text-muted-foreground">às {formatarHora(s.concluidoEm)}</span> : null}
+                {s.concluidoEm ? (
+                  <span className="text-xs whitespace-nowrap text-muted-foreground">às {formatarHora(s.concluidoEm)}</span>
+                ) : null}
+                {comprovantes.has(s.id) ? (
+                  <BotaoComprovante rotaId={rotaId} empresa={parada.nomeEmpresa} comprovante={comprovantes.get(s.id)!} />
+                ) : null}
               </span>
             ))}
           </div>
@@ -261,6 +273,8 @@ function ConteudoRota({ rota }: { rota: Rota }) {
       : undefined;
   const ocorrencias = useOcorrenciasRota(rota.id, emExecucao);
   const ocorrenciasPorParada = Map.groupBy(ocorrencias.data ?? [], (o) => o.paradaId);
+  const comprovantes = useComprovantesRota(rota.id, emExecucao);
+  const comprovantesPorServico = new Map((comprovantes.data ?? []).map((c) => [c.servicoId, c]));
 
   return (
     <ConteudoPagina>
@@ -356,8 +370,10 @@ function ConteudoRota({ rota }: { rota: Rota }) {
               {rota.paradas.map((p, i) => (
                 <LinhaParada
                   key={p.id}
+                  rotaId={rota.id}
                   parada={p}
                   ocorrencias={ocorrenciasPorParada.get(p.id) ?? []}
+                  comprovantes={comprovantesPorServico}
                   atual={p.id === proxima?.id}
                   ultima={i === rota.paradas.length - 1}
                   podeCancelar={acoes.cancelarParada}

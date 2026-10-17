@@ -158,10 +158,11 @@ model Motorista {
   criadoEm     DateTime  @default(now()) @map("criado_em") @db.Timestamptz(3)
   atualizadoEm DateTime  @updatedAt @map("atualizado_em") @db.Timestamptz(3)
 
-  usuario            Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  usuario            Usuario       @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
   rotas              Rota[]
   servicosExecutados Servico[]
   ocorrencias        Ocorrencia[]
+  comprovantes       Comprovante[]
 
   @@map("motoristas")
 }
@@ -279,6 +280,7 @@ model Servico {
   parada       Parada       @relation(fields: [paradaId], references: [id], onDelete: Cascade)
   executadoPor Motorista?   @relation(fields: [executadoPorMotoristaId], references: [id], onDelete: Restrict)
   ocorrencias  Ocorrencia[]
+  comprovante  Comprovante?
 
   @@unique([paradaId, tipo])
   @@index([executadoPorMotoristaId, concluidoEm])
@@ -305,6 +307,26 @@ model Ocorrencia {
   @@index([paradaId])
   @@index([motoristaId, ocorridaEm])
   @@map("ocorrencias")
+}
+
+// Comprovante de um serviço realizado (foto, assinatura e/ou nome de quem recebeu).
+// A foto fica no armazenamento de arquivos (só a chave aqui); a assinatura são traços em JSON.
+// Dados pessoais do recebedor: acesso só do admin, nunca em log (auth-security-lgpd).
+model Comprovante {
+  id            String   @id @default(uuid()) @db.Uuid
+  servicoId     String   @unique @map("servico_id") @db.Uuid
+  motoristaId   String   @map("motorista_id") @db.Uuid
+  nomeRecebedor String?  @map("nome_recebedor")
+  assinatura    Json?
+  fotoChave     String?  @map("foto_chave")
+  fotoBytes     Int?     @map("foto_bytes")
+  registradoEm  DateTime @default(now()) @map("registrado_em") @db.Timestamptz(3)
+
+  servico   Servico   @relation(fields: [servicoId], references: [id], onDelete: Restrict)
+  motorista Motorista @relation(fields: [motoristaId], references: [id], onDelete: Restrict)
+
+  @@index([motoristaId, registradoEm])
+  @@map("comprovantes")
 }
 
 // Histórico append-only: nunca atualizar nem apagar linhas no código.

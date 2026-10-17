@@ -7,6 +7,8 @@ try {
 
 process.env['JWT_SECRET'] ??= 'segredo-de-teste-local-com-pelo-menos-32-caracteres';
 process.env['LIMITE_LOGIN_POR_MINUTO'] ??= '1000';
+// Fotos de comprovante dos testes ficam numa pasta temporária, fora do repositório.
+process.env['ARMAZENAMENTO_PASTA'] ??= `${process.env['TMPDIR'] ?? process.env['TEMP'] ?? '/tmp'}/rotas-e2e-arquivos`;
 
 const url = process.env['DATABASE_URL'] ?? '';
 const host = (() => {

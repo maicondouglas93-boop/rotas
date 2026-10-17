@@ -49,3 +49,6 @@ dist-e2e/
 .next-e2e/
 playwright-report/
 test-results/
+
+# Fotos de comprovante gravadas em disco (dev/teste)
+.armazenamento/
