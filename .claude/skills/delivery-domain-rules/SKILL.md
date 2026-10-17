@@ -58,6 +58,7 @@ Terminais: Rota `CONCLUIDA`, `CANCELADA`; Parada `FINALIZADA`, `CANCELADA`; Serv
 | `CONCLUIR` (automático) | `EM_ANDAMENTO` | `CONCLUIDA` | sistema | todas as paradas terminais; ocorre na mesma transação que finaliza a última parada |
 | `CANCELAR` | qualquer não terminal | `CANCELADA` | admin | motivo obrigatório; paradas não terminais → `CANCELADA`, serviços pendentes → `CANCELADO` |
 | `TRANSFERIR` | `ENVIADA`, `RECEBIDA`, `EM_ANDAMENTO` | `ENVIADA` | admin | novo motorista ativo e diferente do atual; motivo obrigatório |
+| `EDITAR_ESTRUTURA` | `RASCUNHO` | `RASCUNHO` | admin | — (montagem livre) |
 | `EDITAR_ESTRUTURA` | `ENVIADA`, `RECEBIDA` | `ENVIADA` | admin | motorista é notificado e precisa reconfirmar |
 | `EDITAR_ESTRUTURA` | `EM_ANDAMENTO` | `EM_ANDAMENTO` | admin | só afeta paradas `PENDENTE` (ver edição) |
 | `EXCLUIR` | `RASCUNHO` | (removida) | admin | única exclusão física permitida |
@@ -67,12 +68,14 @@ Terminais: Rota `CONCLUIDA`, `CANCELADA`; Parada `FINALIZADA`, `CANCELADA`; Serv
 | Comando | Entidade | De | Para | Ator | Pré-condições |
 |---|---|---|---|---|---|
 | `SEGUIR_PARA` | Parada | `PENDENTE` | `A_CAMINHO` | motorista | rota `EM_ANDAMENTO`; se outra parada estiver `A_CAMINHO`, ela volta para `PENDENTE` na mesma transação |
-| `VOLTAR_PARA_FILA` | Parada | `A_CAMINHO` | `PENDENTE` | motorista | — |
-| `CHEGAR` | Parada | `A_CAMINHO` | `NO_LOCAL` | motorista | nenhuma outra parada `NO_LOCAL` na rota |
+| `VOLTAR_PARA_FILA` | Parada | `A_CAMINHO` | `PENDENTE` | motorista | rota `EM_ANDAMENTO` |
+| `CHEGAR` | Parada | `A_CAMINHO` | `NO_LOCAL` | motorista | rota `EM_ANDAMENTO`; nenhuma outra parada `NO_LOCAL` na rota |
 | `REALIZAR` | Serviço | `PENDENTE` | `REALIZADO` | motorista | parada `NO_LOCAL`; grava `executadoPorMotoristaId` e `concluidoEm` |
 | `NAO_REALIZAR` | Serviço | `PENDENTE` | `NAO_REALIZADO` | motorista | parada `A_CAMINHO` ou `NO_LOCAL`; ocorrência criada junto |
 | (automático) | Parada | `NO_LOCAL` ou `A_CAMINHO` | `FINALIZADA` | sistema | todos os serviços da parada terminais |
-| `CANCELAR_PARADA` | Parada | `PENDENTE`, `A_CAMINHO` | `CANCELADA` | admin | motivo; serviços pendentes → `CANCELADO` |
+| `CANCELAR_PARADA` | Parada | `PENDENTE`, `A_CAMINHO` | `CANCELADA` | admin | rota `EM_ANDAMENTO`; motivo; serviços pendentes → `CANCELADO`. Antes do início, a parada é removida por `EDITAR_ESTRUTURA` |
+
+Implementação: `apps/api/src/modulos/rotas/dominio/transicoes.ts` (`transicaoRota`, `transicaoParada`, `transicaoServico`, `paradaDeveFinalizar`, `rotaDeveConcluir`). Essas funções checam só status, comando e ator; as pré-condições que dependem de outros dados são validadas à parte.
 
 Invariantes derivadas:
 - No máximo **uma** parada ativa (`A_CAMINHO` ou `NO_LOCAL`) por rota.

@@ -6,15 +6,16 @@
     "node": ">=22.18"
   },
   "scripts": {
-    "postinstall": "pnpm --filter @rotas/shared build",
+    "postinstall": "pnpm build:shared",
     "dev": "pnpm --parallel --filter api --filter admin --filter @rotas/shared dev",
     "dev:driver": "pnpm --filter driver start",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test",
-    "test:e2e": "pnpm --filter api test:e2e",
+    "typecheck": "pnpm build:shared && pnpm -r typecheck",
+    "test": "pnpm build:shared && pnpm -r test",
+    "test:e2e": "pnpm build:shared && pnpm --filter api test:e2e",
     "db:up": "docker compose up -d postgres",
-    "db:down": "docker compose down"
+    "db:down": "docker compose down",
+    "build:shared": "pnpm --filter @rotas/shared build"
   }
 }

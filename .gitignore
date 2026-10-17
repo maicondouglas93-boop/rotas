@@ -40,3 +40,6 @@ expo-env.d.ts
 .kotlin/
 *.orig.*
 web-build/
+
+# Configuração pessoal do Claude Code (permissões locais)
+.claude/settings.local.json

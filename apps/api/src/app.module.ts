@@ -3,11 +3,12 @@ import { APP_FILTER } from '@nestjs/core';
 import { ExcecoesFilter } from './comum/filtros/excecoes.filter.js';
 import { requestIdMiddleware } from './comum/request-id.middleware.js';
 import { ConfigModule } from './config/config.module.js';
+import { EmpresasModule } from './modulos/empresas/empresas.module.js';
 import { SaudeModule } from './modulos/saude/saude.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
 @Module({
-  imports: [ConfigModule, PrismaModule, SaudeModule],
+  imports: [ConfigModule, PrismaModule, SaudeModule, EmpresasModule],
   providers: [{ provide: APP_FILTER, useClass: ExcecoesFilter }],
 })
 export class AppModule implements NestModule {
