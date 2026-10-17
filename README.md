@@ -13,7 +13,7 @@ Banco em produção: Neon (PostgreSQL). Painel e app falam só com a API; nenhum
 
 ## Estado atual
 
-Pronto na API: login e sessão (JWT + refresh rotativo, perfis ADMIN e MOTORISTA), cadastro de empresas, cadastro de motoristas (senha temporária, desativação com corte imediato de acesso) e as regras de transição de status. Ainda faltam montagem e execução de rotas, e as telas do painel e do app (hoje só verificam a conexão com a API).
+Pronto na API: login e sessão (JWT + refresh rotativo, perfis ADMIN e MOTORISTA), cadastro de empresas, cadastro de motoristas (senha temporária, desativação com corte imediato de acesso) e montagem de rotas pelo admin (criar, editar com versão, enviar, cancelar, transferir, duplicar, cancelar parada, histórico). Ainda faltam a execução pelo motorista, o tempo real, e as telas do painel e do app (hoje só verificam a conexão com a API).
 
 ## Pré-requisitos
 

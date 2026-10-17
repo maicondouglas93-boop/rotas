@@ -6,11 +6,12 @@ import { ConfigModule } from './config/config.module.js';
 import { AuthModule } from './modulos/auth/auth.module.js';
 import { EmpresasModule } from './modulos/empresas/empresas.module.js';
 import { MotoristasModule } from './modulos/motoristas/motoristas.module.js';
+import { RotasModule } from './modulos/rotas/rotas.module.js';
 import { SaudeModule } from './modulos/saude/saude.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
 @Module({
-  imports: [ConfigModule, PrismaModule, AuthModule, SaudeModule, EmpresasModule, MotoristasModule],
+  imports: [ConfigModule, PrismaModule, AuthModule, SaudeModule, EmpresasModule, MotoristasModule, RotasModule],
   providers: [{ provide: APP_FILTER, useClass: ExcecoesFilter }],
 })
 export class AppModule implements NestModule {

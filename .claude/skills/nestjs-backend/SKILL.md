@@ -144,6 +144,8 @@ O filtro global converte `ErroDominio`, `HttpException` do Nest e erros conhecid
 ### Concorrência
 
 - Edição pelo admin envia `versao`. Grave com `updateMany({ where: { id, versao }, data: { ..., versao: { increment: 1 } } })`; se `count === 0`, lance `CONFLITO_VERSAO`.
+- Rotas: todo comando do admin começa com `travarRota(tx, id, versao)` (`modulos/rotas/rotas.apoio.ts`), que confere e incrementa a versão travando a linha; o estado é lido de novo DEPOIS da trava e as regras são aplicadas sobre ele.
+- Comandos do motorista travam a mesma linha (`SELECT ... FOR UPDATE` na rota) **sem** incrementar a versão — senão o admin receberia 409 a cada parada concluída. Como o admin relê o estado sob a trava, as regras continuam valendo.
 - Comandos do motorista usam compare-and-set de status: `updateMany({ where: { id, status: 'A_CAMINHO', ... }, data: { status: 'NO_LOCAL' } })`. `count === 0` → releia e lance `TRANSICAO_INVALIDA` (ou devolva o estado atual se já estiver no destino, para o comando ser idempotente).
 
 ### Idempotência dos comandos do motorista

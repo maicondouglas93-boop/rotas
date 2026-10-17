@@ -75,6 +75,8 @@ Terminais: Rota `CONCLUIDA`, `CANCELADA`; Parada `FINALIZADA`, `CANCELADA`; Serv
 | (automático) | Parada | `NO_LOCAL` ou `A_CAMINHO` | `FINALIZADA` | sistema | todos os serviços da parada terminais |
 | `CANCELAR_PARADA` | Parada | `PENDENTE`, `A_CAMINHO` | `CANCELADA` | admin | rota `EM_ANDAMENTO`; motivo; serviços pendentes → `CANCELADO`. Antes do início, a parada é removida por `EDITAR_ESTRUTURA` |
 
+Edição e envio: `apps/api/src/modulos/rotas/dominio/edicao.ts` (`planejarEdicaoParadas`, `validarCamposEdicao`, `validarEnvio`). A edição recebe o estado desejado completo (`PUT /rotas/:id`): paradas existentes fora da lista são removidas (só antes do início) e a ordem do array é a nova sequência.
+
 Implementação: `apps/api/src/modulos/rotas/dominio/transicoes.ts` (`transicaoRota`, `transicaoParada`, `transicaoServico`, `paradaDeveFinalizar`, `rotaDeveConcluir`). Essas funções checam só status, comando e ator; as pré-condições que dependem de outros dados são validadas à parte.
 
 Invariantes derivadas:
