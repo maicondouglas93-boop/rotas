@@ -1,9 +1,10 @@
 import { ErroApi } from '@rotas/shared';
 import { Redirect, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
-import { Aviso, Botao, Campo, Tela } from '../componentes/basicos';
-import { cores } from '../componentes/tema';
+import { StyleSheet, Text, View } from 'react-native';
+import { Aviso, Botao, Campo, Cartao, Tela } from '../componentes/basicos';
+import { Icone } from '../componentes/icone';
+import { cores, raio } from '../componentes/tema';
 import { useSessao } from '../sessao/sessao';
 
 export default function TrocarSenha() {
@@ -34,19 +35,50 @@ export default function TrocarSenha() {
 
   return (
     <Tela>
-      <Text style={estilos.texto}>Por segurança, troque a senha temporária antes de começar.</Text>
-      <Campo rotulo="Senha atual (temporária)" value={senhaAtual} onChangeText={setSenhaAtual} secureTextEntry autoCapitalize="none" />
-      <Campo rotulo="Nova senha" value={novaSenha} onChangeText={setNovaSenha} secureTextEntry autoCapitalize="none" />
-      <Campo rotulo="Repita a nova senha" value={confirmacao} onChangeText={setConfirmacao} secureTextEntry autoCapitalize="none" />
-      <Text style={estilos.dica}>Mínimo de 8 caracteres. Evite senhas comuns e o seu e-mail.</Text>
+      <Cartao>
+        <View style={estilos.icone}>
+          <Icone nome="shield-lock-outline" tamanho={30} cor={cores.primaria} />
+        </View>
+        <Text accessibilityRole="header" style={estilos.titulo}>
+          Crie sua senha
+        </Text>
+        <Text style={estilos.texto}>Por segurança, troque a senha temporária antes de começar.</Text>
+      </Cartao>
+      <Campo
+        rotulo="Senha atual (temporária)"
+        icone="lock-clock"
+        value={senhaAtual}
+        onChangeText={setSenhaAtual}
+        secureTextEntry
+        autoCapitalize="none"
+      />
+      <Campo rotulo="Nova senha" icone="lock-outline" value={novaSenha} onChangeText={setNovaSenha} secureTextEntry autoCapitalize="none" />
+      <Campo
+        rotulo="Repita a nova senha"
+        icone="lock-check-outline"
+        value={confirmacao}
+        onChangeText={setConfirmacao}
+        secureTextEntry
+        autoCapitalize="none"
+      />
+      <Aviso tom="info" texto="Mínimo de 8 caracteres. Evite senhas comuns e o seu e-mail." />
       {erro ? <Aviso tom="perigo" texto={erro} /> : null}
-      <Botao titulo="Salvar nova senha" onPress={enviar} carregando={enviando} />
-      <Botao titulo="Sair" variante="secundaria" onPress={() => void sair()} />
+      <Botao titulo="Salvar nova senha" icone="check" onPress={enviar} carregando={enviando} />
+      <Botao titulo="Sair" icone="logout" variante="secundaria" onPress={() => void sair()} />
     </Tela>
   );
 }
 
 const estilos = StyleSheet.create({
-  texto: { fontSize: 17, color: cores.texto },
-  dica: { fontSize: 15, color: cores.textoSecundario },
+  icone: {
+    width: 56,
+    height: 56,
+    borderRadius: raio.g,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: cores.primariaSuave,
+    marginBottom: 4,
+  },
+  titulo: { fontSize: 22, fontWeight: '800', color: cores.texto, letterSpacing: -0.3 },
+  texto: { fontSize: 16, color: cores.textoSecundario, lineHeight: 22 },
 });

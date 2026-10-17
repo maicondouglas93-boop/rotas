@@ -9,18 +9,37 @@ import {
   type TipoOcorrencia,
 } from '@rotas/shared';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 import { useEnviarComando, useFilaPendente, useRota } from '../../../../../api/consultas';
 import { abrirExterno } from '../../../../../componentes/abrir-externo';
 import { BannerConexao } from '../../../../../componentes/banner-conexao';
-import { Aviso, Botao, Carregando, Cartao, Tela } from '../../../../../componentes/basicos';
+import {
+  Atalho,
+  Aviso,
+  Botao,
+  Carregando,
+  Cartao,
+  GrupoAcoes,
+  LinhaAcao,
+  Tela,
+  TituloSecao,
+} from '../../../../../componentes/basicos';
 import { EscolhaOcorrencia } from '../../../../../componentes/escolha-ocorrencia';
+import { formatarHora } from '../../../../../componentes/formatos';
+import { Icone } from '../../../../../componentes/icone';
+import { ICONE_SERVICO } from '../../../../../componentes/servico';
 import { Status } from '../../../../../componentes/status';
-import { cores } from '../../../../../componentes/tema';
+import { cores, espaco, raio } from '../../../../../componentes/tema';
 import { proximaParada } from '../../../../../rotas/proxima-parada';
 
 const TEXTO_CONCLUIR: Record<Servico['tipo'], string> = { COLETA: 'Coleta realizada', ENTREGA: 'Entrega concluída' };
+
+// Cores próximas às dos apps, escurecidas para manter contraste no fundo branco.
+const COR_WAZE = '#0b9bd0';
+const COR_MAPS = '#1a73e8';
+const COR_WHATSAPP = '#1a9e4b';
 
 type Ocorrencia = { modo: 'nao-realizar'; servico: Servico } | { modo: 'informativa' } | null;
 
@@ -40,7 +59,7 @@ export default function TelaParada() {
     return (
       <Tela>
         <Aviso tom="perigo" texto="Parada não encontrada. A rota pode ter sido alterada pela administração." />
-        <Botao titulo="Voltar para a rota" variante="secundaria" onPress={() => router.back()} />
+        <Botao titulo="Voltar para a rota" icone="arrow-left" variante="secundaria" onPress={() => router.back()} />
       </Tela>
     );
   }
@@ -93,76 +112,120 @@ export default function TelaParada() {
   }
 
   const rodape = aguardando ? (
-    <Botao titulo="Aguardando envio…" onPress={() => undefined} desabilitado />
+    <Botao titulo="Aguardando envio…" icone="cloud-upload-outline" onPress={() => undefined} desabilitado />
   ) : acoes.seguir ? (
-    <Botao titulo="Ir para esta parada" onPress={seguir} />
+    <Botao titulo="Ir para esta parada" icone="navigation-variant-outline" onPress={seguir} />
   ) : acoes.chegar ? (
-    <Botao titulo="Cheguei ao local" onPress={() => comando(`/motorista/paradas/${parada.id}/cheguei`, parada.id, 'Cheguei ao local')} />
+    <Botao
+      titulo="Cheguei ao local"
+      icone="map-marker-check-outline"
+      onPress={() => comando(`/motorista/paradas/${parada.id}/cheguei`, parada.id, 'Cheguei ao local')}
+    />
   ) : acoes.realizarServico ? (
     <>
       {servicosPendentes.map((s) => (
-        <Botao key={s.id} titulo={TEXTO_CONCLUIR[s.tipo]} onPress={() => concluir(s)} />
+        <Botao key={s.id} titulo={TEXTO_CONCLUIR[s.tipo]} icone="check-circle-outline" onPress={() => concluir(s)} />
       ))}
     </>
   ) : seguinte ? (
     <Botao
       titulo={`Próxima parada: ${seguinte.nomeEmpresa}`}
+      icone="arrow-right"
       onPress={() => router.replace(`/rotas/${rota.id}/paradas/${seguinte.id}`)}
     />
   ) : encerrada ? (
-    <Botao titulo="Voltar para a rota" variante="secundaria" onPress={() => router.back()} />
+    <Botao titulo="Voltar para a rota" icone="format-list-numbered" variante="secundaria" onPress={() => router.back()} />
   ) : null;
+
+  const outrasAcoes = aguardando
+    ? []
+    : [
+        ...(acoes.naoRealizarServico
+          ? servicosPendentes.map((s) => (
+              <LinhaAcao
+                key={`nao-${s.id}`}
+                icone="close-circle-outline"
+                titulo={`Não foi possível: ${ROTULO_TIPO_SERVICO[s.tipo].toLowerCase()}`}
+                perigo
+                onPress={() => setOcorrencia({ modo: 'nao-realizar', servico: s })}
+              />
+            ))
+          : []),
+        ...(acoes.registrarOcorrencia
+          ? [
+              <LinhaAcao
+                key="ocorrencia"
+                icone="alert-circle-outline"
+                titulo="Registrar ocorrência"
+                onPress={() => setOcorrencia({ modo: 'informativa' })}
+              />,
+            ]
+          : []),
+        ...(acoes.voltarParaFila
+          ? [
+              <LinhaAcao
+                key="fila"
+                icone="undo-variant"
+                titulo="Voltar esta parada para a fila"
+                onPress={() => comando(`/motorista/paradas/${parada.id}/voltar-para-fila`, parada.id, 'Voltar para a fila')}
+              />,
+            ]
+          : []),
+      ];
 
   return (
     <>
-      <Stack.Screen options={{ title: `${parada.sequencia}. ${parada.nomeEmpresa}` }} />
+      <Stack.Screen options={{ title: `Parada ${parada.sequencia} de ${rota.paradas.length}` }} />
+      <StatusBar style="dark" />
       <Tela rodape={rodape}>
         <BannerConexao />
-        {ocorrenciaRegistrada ? <Aviso tom="info" texto={ocorrenciaRegistrada} /> : null}
-        <Cartao>
+        {ocorrenciaRegistrada ? <Aviso tom="sucesso" texto={ocorrenciaRegistrada} /> : null}
+        <Cartao destaque={!encerrada && rota.status === 'EM_ANDAMENTO'}>
           <Status tipo="parada" status={parada.status} />
-          <Text style={estilos.nome}>{parada.nomeEmpresa}</Text>
-          <Text style={estilos.endereco}>{parada.enderecoFormatado}</Text>
-          {parada.observacoes ? <Aviso texto={`Observação da administração: ${parada.observacoes}`} /> : null}
-          <View style={estilos.servicos}>
-            {parada.servicos.map((s) => (
-              <View key={s.id} style={estilos.servico}>
-                <Text style={estilos.tipo}>{ROTULO_TIPO_SERVICO[s.tipo]}</Text>
-                <Status tipo="servico" status={s.status} />
-              </View>
-            ))}
+          <Text accessibilityRole="header" style={estilos.nome}>
+            {parada.nomeEmpresa}
+          </Text>
+          <View style={estilos.linhaEndereco}>
+            <Icone nome="map-marker-outline" tamanho={20} cor={cores.textoSecundario} />
+            <Text style={estilos.endereco}>{parada.enderecoFormatado}</Text>
           </View>
+          {parada.observacoes ? (
+            <Aviso icone="message-alert-outline" texto={`Observação da administração: ${parada.observacoes}`} />
+          ) : null}
         </Cartao>
 
-        <View style={estilos.botoes}>
-          <Botao titulo="Abrir no Waze" variante="secundaria" onPress={navegar} />
-          <Botao titulo="Abrir no Google Maps" variante="secundaria" onPress={() => void abrirExterno(linkGoogleMaps(parada))} />
+        <View style={estilos.atalhos}>
+          <Atalho icone="waze" rotulo="Waze" cor={COR_WAZE} onPress={navegar} />
+          <Atalho icone="google-maps" rotulo="Maps" cor={COR_MAPS} onPress={() => void abrirExterno(linkGoogleMaps(parada))} />
           {parada.whatsapp ? (
-            <Botao titulo="Conversar no WhatsApp" variante="secundaria" onPress={() => void abrirExterno(linkWhatsApp(parada.whatsapp!))} />
+            <Atalho icone="whatsapp" rotulo="WhatsApp" cor={COR_WHATSAPP} onPress={() => void abrirExterno(linkWhatsApp(parada.whatsapp!))} />
           ) : null}
         </View>
 
-        {!aguardando && acoes.naoRealizarServico && servicosPendentes.length > 0 ? (
-          <View style={estilos.botoes}>
-            {servicosPendentes.map((s) => (
-              <Botao
-                key={s.id}
-                titulo={`Não foi possível: ${ROTULO_TIPO_SERVICO[s.tipo].toLowerCase()}`}
-                variante="secundaria"
-                onPress={() => setOcorrencia({ modo: 'nao-realizar', servico: s })}
-              />
-            ))}
-          </View>
-        ) : null}
-        {!aguardando && acoes.registrarOcorrencia ? (
-          <Botao titulo="Registrar ocorrência" variante="secundaria" onPress={() => setOcorrencia({ modo: 'informativa' })} />
-        ) : null}
-        {!aguardando && acoes.voltarParaFila ? (
-          <Botao
-            titulo="Voltar esta parada para a fila"
-            variante="secundaria"
-            onPress={() => comando(`/motorista/paradas/${parada.id}/voltar-para-fila`, parada.id, 'Voltar para a fila')}
-          />
+        <TituloSecao texto="Serviços" />
+        <GrupoAcoes>
+          {parada.servicos.map((s) => (
+            <View key={s.id} style={estilos.servico}>
+              <View style={estilos.iconeServico}>
+                <Icone nome={ICONE_SERVICO[s.tipo]} cor={cores.primaria} />
+              </View>
+              <View style={estilos.infoServico}>
+                <Text style={estilos.tipo}>{ROTULO_TIPO_SERVICO[s.tipo]}</Text>
+                {s.concluidoEm ? <Text style={estilos.hora}>às {formatarHora(s.concluidoEm)}</Text> : null}
+              </View>
+              {/* O selo usa alignSelf: flex-start; o View o centraliza na linha. */}
+              <View>
+                <Status tipo="servico" status={s.status} />
+              </View>
+            </View>
+          ))}
+        </GrupoAcoes>
+
+        {outrasAcoes.length > 0 ? (
+          <>
+            <TituloSecao texto="Outras ações" />
+            <GrupoAcoes>{outrasAcoes}</GrupoAcoes>
+          </>
         ) : null}
         {rota.status !== 'EM_ANDAMENTO' && parada.status === 'PENDENTE' ? (
           <Aviso tom="info" texto="Inicie a rota para registrar esta parada." />
@@ -185,10 +248,27 @@ export default function TelaParada() {
 }
 
 const estilos = StyleSheet.create({
-  nome: { fontSize: 22, fontWeight: '800', color: cores.texto },
-  endereco: { fontSize: 16, color: cores.textoSecundario },
-  servicos: { gap: 8, marginTop: 4 },
-  servico: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  tipo: { fontSize: 17, fontWeight: '600', color: cores.texto },
-  botoes: { gap: 8 },
+  nome: { fontSize: 26, fontWeight: '800', color: cores.texto, letterSpacing: -0.5, marginTop: 4 },
+  linhaEndereco: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
+  endereco: { flex: 1, fontSize: 16, color: cores.textoSecundario, lineHeight: 22 },
+  atalhos: { flexDirection: 'row', gap: espaco.p + 2 },
+  servico: {
+    minHeight: 64,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: espaco.m,
+    paddingHorizontal: espaco.g,
+    paddingVertical: espaco.p,
+  },
+  iconeServico: {
+    width: 40,
+    height: 40,
+    borderRadius: raio.m,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: cores.primariaSuave,
+  },
+  infoServico: { flex: 1, gap: 2 },
+  tipo: { fontSize: 17, fontWeight: '700', color: cores.texto },
+  hora: { fontSize: 14, color: cores.textoSecundario },
 });

@@ -1,25 +1,37 @@
 import { useQuery } from '@tanstack/react-query';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { requisitar } from '../api/cliente';
+import { ALVO_TOQUE, cores, raio } from './tema';
 
 type Saude = { status: 'ok'; versao: string };
 
+/** Linha discreta no login: ponto verde/vermelho e versão do servidor. */
 export function StatusApi() {
   const consulta = useQuery({
     queryKey: ['saude'],
     queryFn: () => requisitar<Saude>('/saude/pronto'),
   });
 
-  if (consulta.isPending) return <Text style={estilos.texto}>Verificando conexão…</Text>;
+  if (consulta.isPending) {
+    return (
+      <View style={estilos.linha}>
+        <View style={[estilos.ponto, { backgroundColor: cores.bordaForte }]} />
+        <Text style={estilos.texto}>Verificando conexão…</Text>
+      </View>
+    );
+  }
 
   if (consulta.isError) {
     return (
-      <View style={estilos.linha}>
-        <Text style={estilos.texto}>Sem conexão com o servidor</Text>
+      <View style={estilos.coluna}>
+        <View style={estilos.linha}>
+          <View style={[estilos.ponto, { backgroundColor: cores.perigo }]} />
+          <Text style={estilos.texto}>Sem conexão com o servidor</Text>
+        </View>
         <Pressable
           accessibilityRole="button"
           onPress={() => consulta.refetch()}
-          style={estilos.botao}
+          style={({ pressed }) => [estilos.botao, pressed && { opacity: 0.85 }]}
         >
           <Text style={estilos.textoBotao}>Tentar novamente</Text>
         </Pressable>
@@ -27,19 +39,26 @@ export function StatusApi() {
     );
   }
 
-  return <Text style={estilos.texto}>Conectado ao servidor · versão {consulta.data.versao}</Text>;
+  return (
+    <View style={estilos.linha}>
+      <View style={[estilos.ponto, { backgroundColor: cores.sucesso }]} />
+      <Text style={estilos.texto}>Conectado ao servidor · versão {consulta.data.versao}</Text>
+    </View>
+  );
 }
 
 const estilos = StyleSheet.create({
-  linha: { gap: 12 },
-  texto: { fontSize: 16, color: '#1f2937' },
+  coluna: { gap: 12, alignItems: 'center' },
+  linha: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  ponto: { width: 8, height: 8, borderRadius: raio.pilula },
+  texto: { fontSize: 15, color: cores.textoSecundario },
   botao: {
-    minHeight: 48,
+    minHeight: ALVO_TOQUE,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 8,
-    backgroundColor: '#111827',
-    paddingHorizontal: 16,
+    borderRadius: raio.m,
+    backgroundColor: cores.primariaSuave,
+    paddingHorizontal: 20,
   },
-  textoBotao: { fontSize: 16, fontWeight: '600', color: '#ffffff' },
+  textoBotao: { fontSize: 16, fontWeight: '700', color: cores.primaria },
 });

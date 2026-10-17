@@ -15,13 +15,14 @@ export default function LayoutApp() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: cores.superficie },
-        headerTitleStyle: { fontWeight: '700' },
+        headerStyle: { backgroundColor: cores.fundo },
+        headerShadowVisible: false,
+        headerTitleStyle: { fontWeight: '800', fontSize: 18 },
         headerTintColor: cores.texto,
         contentStyle: { backgroundColor: cores.fundo },
       }}
     >
-      <Stack.Screen name="index" options={{ title: 'Minhas rotas' }} />
+      <Stack.Screen name="index" options={{ headerShown: false, title: 'Minhas rotas' }} />
       <Stack.Screen name="rotas/[id]/index" options={{ title: 'Rota' }} />
       <Stack.Screen name="rotas/[id]/paradas/[paradaId]" options={{ title: 'Parada' }} />
     </Stack>

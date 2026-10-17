@@ -8,6 +8,13 @@ export function BannerConexao() {
   const pendentes = useFilaPendente().length;
   if (online && pendentes === 0) return null;
   const acoes = pendentes === 1 ? '1 ação aguardando envio' : `${pendentes} ações aguardando envio`;
-  if (!online) return <Aviso texto={pendentes > 0 ? `Sem conexão — ${acoes}.` : 'Sem conexão. Mostrando os dados salvos.'} />;
-  return <Aviso tom="info" texto={`Enviando: ${acoes}…`} />;
+  if (!online) {
+    return (
+      <Aviso
+        icone="cloud-off-outline"
+        texto={pendentes > 0 ? `Sem conexão — ${acoes}.` : 'Sem conexão. Mostrando os dados salvos.'}
+      />
+    );
+  }
+  return <Aviso tom="info" icone="cloud-upload-outline" texto={`Enviando: ${acoes}…`} />;
 }

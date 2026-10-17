@@ -35,8 +35,9 @@ export default function Layout() {
         <StatusBar style="dark" />
         <Stack
           screenOptions={{
-            headerStyle: { backgroundColor: cores.superficie },
-            headerTitleStyle: { fontWeight: '700' },
+            headerStyle: { backgroundColor: cores.fundo },
+            headerShadowVisible: false,
+            headerTitleStyle: { fontWeight: '800', fontSize: 18 },
             headerTintColor: cores.texto,
             contentStyle: { backgroundColor: cores.fundo },
           }}

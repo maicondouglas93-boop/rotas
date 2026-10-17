@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "main": "expo-router/entry",
   "dependencies": {
+    "@expo/vector-icons": "^15.1.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/netinfo": "12.0.1",
     "@rotas/shared": "workspace:*",
@@ -12,6 +13,8 @@
     "expo": "~58.0.14",
     "expo-constants": "~58.0.12",
     "expo-crypto": "~58.0.7",
+    "expo-haptics": "~58.0.7",
+    "expo-linear-gradient": "~58.0.3",
     "expo-linking": "~58.0.13",
     "expo-router": "~58.0.23",
     "expo-secure-store": "~58.0.2",
