@@ -1,4 +1,4 @@
-import { formatarEndereco, type TipoEventoRota, type TipoServico } from '@rotas/shared';
+import { formatarEndereco, STATUS_PARADA_TERMINAIS, type TipoEventoRota, type TipoServico } from '@rotas/shared';
 import { ErroDominio } from '../../comum/erros/erro-dominio.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { rotaSelect, type RotaRegistro } from './rotas.mapper.js';
@@ -113,6 +113,8 @@ export interface NovoEvento {
   /** `null` quando a ação é automática (sistema). */
   autorUsuarioId: string | null;
   dados?: Prisma.InputJsonObject;
+  /** Horário informado pelo dispositivo (comandos do motorista). */
+  ocorridoEm?: Date | null;
 }
 
 /** Histórico append-only: grava o evento na mesma transação da mudança. */
@@ -125,6 +127,36 @@ export async function registrarEvento(tx: Tx, evento: NovoEvento): Promise<void>
       statusNovo: evento.statusNovo ?? null,
       autorUsuarioId: evento.autorUsuarioId,
       dados: evento.dados ?? {},
+      ocorridoEm: evento.ocorridoEm ?? null,
     },
   });
+}
+
+/**
+ * Trava a linha da rota sem mexer na versão (comandos do motorista). O admin relê o estado sob a mesma
+ * trava, então não precisa receber 409 a cada parada concluída.
+ */
+export async function travarRotaSemVersao(tx: Tx, id: string): Promise<void> {
+  await tx.$queryRaw`SELECT id FROM rotas WHERE id = ${id}::uuid FOR UPDATE`;
+}
+
+/** Total de paradas e quantas estão encerradas, para várias rotas numa consulta só (sem N+1). */
+export async function contarParadas(
+  db: Tx,
+  rotaIds: readonly string[],
+): Promise<Map<string, { total: number; concluidas: number }>> {
+  const contagens = new Map<string, { total: number; concluidas: number }>();
+  if (rotaIds.length === 0) return contagens;
+  const grupos = await db.parada.groupBy({
+    by: ['rotaId', 'status'],
+    where: { rotaId: { in: [...rotaIds] } },
+    _count: { _all: true },
+  });
+  for (const grupo of grupos) {
+    const atual = contagens.get(grupo.rotaId) ?? { total: 0, concluidas: 0 };
+    atual.total += grupo._count._all;
+    if (STATUS_PARADA_TERMINAIS.includes(grupo.status)) atual.concluidas += grupo._count._all;
+    contagens.set(grupo.rotaId, atual);
+  }
+  return contagens;
 }

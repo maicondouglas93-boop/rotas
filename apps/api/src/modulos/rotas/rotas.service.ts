@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import {
-  STATUS_PARADA_TERMINAIS,
   type CriarRotaEntrada,
   type DuplicarRotaEntrada,
   type EventoRota,
@@ -17,6 +16,7 @@ import type { UsuarioAutenticado } from '../auth/tipos.js';
 import { transicaoRota } from './dominio/transicoes.js';
 import {
   carregarEmpresasParaParadas,
+  contarParadas,
   dadosParadaNova,
   garantirMotoristaAtivo,
   obterRota,
@@ -64,21 +64,10 @@ export class RotasService {
       this.prisma.rota.count({ where }),
     ]);
 
-    // Contagem de paradas da página inteira numa consulta só (sem N+1).
-    const contagens = new Map<string, { total: number; concluidas: number }>();
-    if (registros.length > 0) {
-      const grupos = await this.prisma.parada.groupBy({
-        by: ['rotaId', 'status'],
-        where: { rotaId: { in: registros.map((r) => r.id) } },
-        _count: { _all: true },
-      });
-      for (const grupo of grupos) {
-        const atual = contagens.get(grupo.rotaId) ?? { total: 0, concluidas: 0 };
-        atual.total += grupo._count._all;
-        if (STATUS_PARADA_TERMINAIS.includes(grupo.status)) atual.concluidas += grupo._count._all;
-        contagens.set(grupo.rotaId, atual);
-      }
-    }
+    const contagens = await contarParadas(
+      this.prisma,
+      registros.map((r) => r.id),
+    );
 
     return {
       itens: registros.map((r) => mapearRotaResumo(r, contagens.get(r.id) ?? { total: 0, concluidas: 0 })),

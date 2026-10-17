@@ -150,11 +150,11 @@ O filtro global converte `ErroDominio`, `HttpException` do Nest e erros conhecid
 
 ### Idempotência dos comandos do motorista
 
-O app envia o header `Idempotency-Key` (UUID v4) em todo `POST` de `/motorista/*`. O interceptor:
-1. Procura `(usuarioId, chave)` na tabela de comandos processados.
-2. Se existir, devolve a resposta gravada sem executar de novo.
-3. Se não existir, executa e grava status + corpo da resposta na mesma transação do comando.
-4. Sem header → `400 VALIDACAO`.
+O app envia o header `Idempotency-Key` (UUID v4) em todo `POST` de `/motorista/*`. Implementação em `comum/idempotencia/idempotencia.ts`:
+1. `@ChaveIdempotencia()` lê e valida o cabeçalho (ausente ou inválido → `400 VALIDACAO`).
+2. `IdempotenciaService.executar(usuarioId, chave, comando, fn)` procura `(usuarioId, chave)` em `comandos_processados`; se existir, devolve a resposta gravada sem executar.
+3. Senão, executa `fn(tx)` e grava `{ comando, resposta }` na mesma transação. Envio simultâneo da mesma chave cai na chave primária, é desfeito e devolve a resposta gravada.
+4. A mesma chave usada em outro comando (`comando` diferente, ex.: `cheguei:<id>` × `seguir:<id>`) → `422`.
 O app também envia `ocorridoEm` (horário do dispositivo); o servidor grava `ocorridoEm` e `registradoEm` separadamente e nunca usa `ocorridoEm` para ordenar regras de estado.
 
 ### Paginação

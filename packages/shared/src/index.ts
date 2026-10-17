@@ -11,3 +11,4 @@ export * from './schemas/empresas.js';
 export * from './schemas/campos.js';
 export * from './schemas/motoristas.js';
 export * from './schemas/rotas.js';
+export * from './schemas/execucao.js';
