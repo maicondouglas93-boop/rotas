@@ -3,6 +3,8 @@ import { apagarRefreshToken, gravarRefreshToken, lerRefreshToken } from '../sess
 
 // EXPO_PUBLIC_* é embutido no bundle: só endereços públicos, nunca segredos.
 const URL_API = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:4000/api/v1';
+/** Origem da API (sem /api/v1): o Socket.IO atende na raiz do mesmo servidor. Regex porque o URL do RN não expõe `origin`. */
+export const ORIGEM_API = /^https?:\/\/[^/]+/.exec(URL_API)?.[0] ?? URL_API;
 const TIMEOUT_MS = 15_000;
 
 let accessToken: string | null = null;
@@ -11,6 +13,11 @@ const aoPerderSessao = new Set<() => void>();
 
 export function definirAccessToken(token: string | null): void {
   accessToken = token;
+}
+
+/** Token atual para o handshake do Socket.IO (lido a cada tentativa de conexão). */
+export function obterAccessToken(): string | null {
+  return accessToken;
 }
 
 export function observarPerdaDeSessao(callback: () => void): () => void {
