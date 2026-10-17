@@ -71,6 +71,13 @@ Controllers de admin e de motorista são **arquivos separados**, com prefixos se
 
 ## Padrões de código
 
+### Base já existente
+
+- A API é ESM (`"type": "module"`, `module: nodenext`): imports relativos terminam em `.js` (`./rotas.service.js`).
+- Prisma Client gerado em `src/generated/prisma` (não versionado; `postinstall` e `build` executam `prisma generate`). Importe de `../generated/prisma/client.js`.
+- Já prontos: `config/env.ts` (validação Zod + `ENV`), `PrismaService` global, `ErroDominio`, `ZodPipe`, `ExcecoesFilter` (registrado como `APP_FILTER`), `request-id.middleware.ts`, `configurarApp()` (prefixo, helmet, CORS) usado por `main.ts` e pelos testes e2e, módulo `saude`.
+- Lint com oxlint (`pnpm --filter api lint`), testes com Vitest.
+
 ### Pipe Zod (sem dependência extra)
 
 ```ts

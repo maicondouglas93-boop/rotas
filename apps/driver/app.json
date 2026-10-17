@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Rotas Motorista",
+    "slug": "rotas-motorista",
+    "scheme": "rotasmotorista",
+    "version": "0.0.1",
+    "platforms": ["android"],
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "android": {
+      "package": "br.com.rotas.motorista",
+      "permissions": [],
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": ["expo-router", "expo-status-bar"]
+  }
+}

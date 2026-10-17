@@ -149,7 +149,8 @@ Agregações em SQL com `prisma.$queryRaw` e template tag (parâmetros seguros).
 3. Leia o SQL gerado antes de commitar. Procure `DROP`, `ALTER COLUMN ... TYPE`, `NOT NULL` sem default em tabela com dados.
 4. Mudança destrutiva em produção é feita em etapas (expandir → migrar dados → trocar código → remover em outro deploy).
 5. Em produção apenas `prisma migrate deploy` (executado no pre-deploy, ver `devops-documentation`).
-6. Banco Neon: aplicação usa a URL com pooling; migrations usam a URL direta. Configure conforme a documentação da versão do Prisma instalada (o local da configuração do datasource mudou entre versões — verifique antes de editar).
+6. Configuração atual (Prisma 7): `apps/api/prisma.config.ts` define o schema, a pasta de migrations e `datasource.url` = `DIRECT_DATABASE_URL` (com fallback para `DATABASE_URL`) — é a conexão usada pela CLI. A aplicação conecta pelo driver adapter `@prisma/adapter-pg` com `DATABASE_URL` (no Neon, a URL com pooling). O `schema.prisma` não tem `url`. Generator `prisma-client` com saída em `src/generated/prisma` (ESM, imports `.js`).
+7. Restrições em SQL ficam no fim da migration, na seção "Restrições que o Prisma não expressa". `prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code` deve sair com 0 (o CI verifica).
 
 ## Seeds
 

@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: rotas
+          POSTGRES_PASSWORD: rotas_ci
+          POSTGRES_DB: rotas_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U rotas -d rotas_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://rotas:rotas_ci@localhost:5432/rotas_test
+      DIRECT_DATABASE_URL: postgresql://rotas:rotas_ci@localhost:5432/rotas_test
+      CORS_ORIGENS: http://localhost:3000
+      LOG_LEVEL: error
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Instalar dependências
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Verificação de tipos
+        run: pnpm typecheck
+
+      - name: Migrations em banco limpo
+        run: pnpm --filter api db:deploy
+
+      - name: Schema e migrations em sincronia
+        working-directory: apps/api
+        run: pnpm exec prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
+
+      - name: Testes unitários
+        run: pnpm test
+
+      - name: Testes de integração da API
+        run: pnpm test:e2e
+
+      - name: Build
+        run: pnpm --filter @rotas/shared --filter api --filter admin build

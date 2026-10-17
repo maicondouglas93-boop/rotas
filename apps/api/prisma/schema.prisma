@@ -1,0 +1,327 @@
+// Modelo de dados do Sistema de Gestão de Rotas e Entregas.
+// Convenções e regras: .claude/skills/postgres-prisma-data e .claude/skills/delivery-domain-rules.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- Enums (espelham packages/shared/src/dominio) ----------
+
+enum PerfilUsuario {
+  ADMIN
+  MOTORISTA
+}
+
+enum StatusRota {
+  RASCUNHO
+  ENVIADA
+  RECEBIDA
+  EM_ANDAMENTO
+  CONCLUIDA
+  CANCELADA
+}
+
+enum StatusParada {
+  PENDENTE
+  A_CAMINHO
+  NO_LOCAL
+  FINALIZADA
+  CANCELADA
+}
+
+enum TipoServico {
+  COLETA
+  ENTREGA
+}
+
+enum StatusServico {
+  PENDENTE
+  REALIZADO
+  NAO_REALIZADO
+  CANCELADO
+}
+
+enum OrdemOrigem {
+  MANUAL
+  SUGESTAO_PROXIMIDADE
+  OTIMIZADA_PROVEDOR
+}
+
+enum FonteLocalizacao {
+  GEOCODIFICADA
+  MANUAL
+}
+
+enum PrecisaoLocalizacao {
+  EXATA
+  APROXIMADA
+}
+
+enum TipoOcorrencia {
+  ENDERECO_INCORRETO
+  EMPRESA_FECHADA
+  CLIENTE_AUSENTE
+  RECUSA_RECEBIMENTO
+  MERCADORIA_INDISPONIVEL
+  ENTREGA_NAO_REALIZADA
+  OUTRO
+}
+
+enum TipoEventoRota {
+  ROTA_CRIADA
+  ROTA_EDITADA
+  ROTA_ENVIADA
+  ROTA_RECEBIDA
+  ROTA_INICIADA
+  ROTA_CONCLUIDA
+  ROTA_CANCELADA
+  ROTA_TRANSFERIDA
+  PARADA_A_CAMINHO
+  PARADA_RETORNOU_FILA
+  PARADA_CHEGADA
+  PARADA_FINALIZADA
+  PARADA_CANCELADA
+  SERVICO_REALIZADO
+  SERVICO_NAO_REALIZADO
+  OCORRENCIA_REGISTRADA
+}
+
+// ---------- Acesso ----------
+
+model Usuario {
+  id              String        @id @default(uuid()) @db.Uuid
+  email           String        @unique
+  senhaHash       String        @map("senha_hash")
+  perfil          PerfilUsuario
+  ativo           Boolean       @default(true)
+  deveTrocarSenha Boolean       @default(true) @map("deve_trocar_senha")
+  criadoEm        DateTime      @default(now()) @map("criado_em") @db.Timestamptz(3)
+  atualizadoEm    DateTime      @updatedAt @map("atualizado_em") @db.Timestamptz(3)
+
+  motorista    Motorista?
+  sessoes      SessaoRefresh[]
+  comandos     ComandoProcessado[]
+  rotasCriadas Rota[]              @relation("RotaCriadaPor")
+  eventos      RotaEvento[]
+
+  @@map("usuarios")
+}
+
+model SessaoRefresh {
+  id               String    @id @default(uuid()) @db.Uuid
+  usuarioId        String    @map("usuario_id") @db.Uuid
+  tokenHash        String    @unique @map("token_hash")
+  familiaId        String    @map("familia_id") @db.Uuid
+  expiraEm         DateTime  @map("expira_em") @db.Timestamptz(3)
+  revogadaEm       DateTime? @map("revogada_em") @db.Timestamptz(3)
+  substituidaPorId String?   @map("substituida_por_id") @db.Uuid
+  userAgent        String?   @map("user_agent")
+  ip               String?
+  criadoEm         DateTime  @default(now()) @map("criado_em") @db.Timestamptz(3)
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@index([familiaId])
+  @@map("sessoes_refresh")
+}
+
+model ComandoProcessado {
+  usuarioId  String   @map("usuario_id") @db.Uuid
+  chave      String   @db.Uuid
+  statusHttp Int      @map("status_http")
+  corpo      Json
+  criadoEm   DateTime @default(now()) @map("criado_em") @db.Timestamptz(3)
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@id([usuarioId, chave])
+  @@index([criadoEm])
+  @@map("comandos_processados")
+}
+
+// ---------- Cadastros ----------
+
+model Motorista {
+  id           String    @id @default(uuid()) @db.Uuid
+  usuarioId    String    @unique @map("usuario_id") @db.Uuid
+  nome         String
+  telefone     String
+  desativadoEm DateTime? @map("desativado_em") @db.Timestamptz(3)
+  criadoEm     DateTime  @default(now()) @map("criado_em") @db.Timestamptz(3)
+  atualizadoEm DateTime  @updatedAt @map("atualizado_em") @db.Timestamptz(3)
+
+  usuario            Usuario      @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  rotas              Rota[]
+  servicosExecutados Servico[]
+  ocorrencias        Ocorrencia[]
+
+  @@map("motoristas")
+}
+
+model Empresa {
+  id                      String               @id @default(uuid()) @db.Uuid
+  nomeFantasia            String               @map("nome_fantasia")
+  razaoSocial             String?              @map("razao_social")
+  documento               String?
+  telefone                String
+  whatsapp                String?
+  logradouro              String
+  numero                  String
+  complemento             String?
+  bairro                  String
+  cidade                  String
+  uf                      String               @db.Char(2)
+  cep                     String               @db.Char(8)
+  latitude                Float?
+  longitude               Float?
+  fonteLocalizacao        FonteLocalizacao?    @map("fonte_localizacao")
+  precisaoLocalizacao     PrecisaoLocalizacao? @map("precisao_localizacao")
+  localizacaoAtualizadaEm DateTime?            @map("localizacao_atualizada_em") @db.Timestamptz(3)
+  responsavel             String?
+  horarioFuncionamento    String?              @map("horario_funcionamento")
+  observacoes             String?
+  arquivadaEm             DateTime?            @map("arquivada_em") @db.Timestamptz(3)
+  criadoEm                DateTime             @default(now()) @map("criado_em") @db.Timestamptz(3)
+  atualizadoEm            DateTime             @updatedAt @map("atualizado_em") @db.Timestamptz(3)
+
+  paradas Parada[]
+
+  @@map("empresas")
+}
+
+// ---------- Rotas ----------
+
+model Rota {
+  id                    String      @id @default(uuid()) @db.Uuid
+  nome                  String
+  dataPrevista          DateTime    @map("data_prevista") @db.Date
+  status                StatusRota  @default(RASCUNHO)
+  versao                Int         @default(1)
+  motoristaId           String?     @map("motorista_id") @db.Uuid
+  ordemOrigem           OrdemOrigem @default(MANUAL) @map("ordem_origem")
+  distanciaEstimadaM    Int?        @map("distancia_estimada_m")
+  duracaoEstimadaS      Int?        @map("duracao_estimada_s")
+  fonteEstimativa       String?     @map("fonte_estimativa")
+  estimativaCalculadaEm DateTime?   @map("estimativa_calculada_em") @db.Timestamptz(3)
+  enviadaEm             DateTime?   @map("enviada_em") @db.Timestamptz(3)
+  recebidaEm            DateTime?   @map("recebida_em") @db.Timestamptz(3)
+  iniciadaEm            DateTime?   @map("iniciada_em") @db.Timestamptz(3)
+  concluidaEm           DateTime?   @map("concluida_em") @db.Timestamptz(3)
+  canceladaEm           DateTime?   @map("cancelada_em") @db.Timestamptz(3)
+  motivoCancelamento    String?     @map("motivo_cancelamento")
+  criadoPorId           String      @map("criado_por_id") @db.Uuid
+  rotaOrigemId          String?     @map("rota_origem_id") @db.Uuid
+  criadoEm              DateTime    @default(now()) @map("criado_em") @db.Timestamptz(3)
+  atualizadoEm          DateTime    @updatedAt @map("atualizado_em") @db.Timestamptz(3)
+
+  motorista  Motorista?   @relation(fields: [motoristaId], references: [id], onDelete: Restrict)
+  criadoPor  Usuario      @relation("RotaCriadaPor", fields: [criadoPorId], references: [id], onDelete: Restrict)
+  rotaOrigem Rota?        @relation("RotaDuplicada", fields: [rotaOrigemId], references: [id], onDelete: SetNull)
+  duplicatas Rota[]       @relation("RotaDuplicada")
+  paradas    Parada[]
+  eventos    RotaEvento[]
+
+  @@index([motoristaId, status])
+  @@index([dataPrevista])
+  @@index([status, dataPrevista])
+  @@map("rotas")
+}
+
+model Parada {
+  id        String       @id @default(uuid()) @db.Uuid
+  rotaId    String       @map("rota_id") @db.Uuid
+  empresaId String       @map("empresa_id") @db.Uuid
+  sequencia Int
+  status    StatusParada @default(PENDENTE)
+
+  // Snapshot da empresa no momento em que a parada foi criada (delivery-domain-rules).
+  nomeEmpresa       String  @map("nome_empresa")
+  enderecoFormatado String  @map("endereco_formatado")
+  latitude          Float?
+  longitude         Float?
+  telefone          String?
+  whatsapp          String?
+
+  observacoes  String?
+  chegadaEm    DateTime? @map("chegada_em") @db.Timestamptz(3)
+  finalizadaEm DateTime? @map("finalizada_em") @db.Timestamptz(3)
+  criadoEm     DateTime  @default(now()) @map("criado_em") @db.Timestamptz(3)
+  atualizadoEm DateTime  @updatedAt @map("atualizado_em") @db.Timestamptz(3)
+
+  rota        Rota         @relation(fields: [rotaId], references: [id], onDelete: Cascade)
+  empresa     Empresa      @relation(fields: [empresaId], references: [id], onDelete: Restrict)
+  servicos    Servico[]
+  ocorrencias Ocorrencia[]
+
+  @@unique([rotaId, sequencia])
+  @@index([empresaId])
+  @@map("paradas")
+}
+
+model Servico {
+  id                      String        @id @default(uuid()) @db.Uuid
+  paradaId                String        @map("parada_id") @db.Uuid
+  tipo                    TipoServico
+  status                  StatusServico @default(PENDENTE)
+  executadoPorMotoristaId String?       @map("executado_por_motorista_id") @db.Uuid
+  concluidoEm             DateTime?     @map("concluido_em") @db.Timestamptz(3)
+  criadoEm                DateTime      @default(now()) @map("criado_em") @db.Timestamptz(3)
+  atualizadoEm            DateTime      @updatedAt @map("atualizado_em") @db.Timestamptz(3)
+
+  parada       Parada       @relation(fields: [paradaId], references: [id], onDelete: Cascade)
+  executadoPor Motorista?   @relation(fields: [executadoPorMotoristaId], references: [id], onDelete: Restrict)
+  ocorrencias  Ocorrencia[]
+
+  @@unique([paradaId, tipo])
+  @@index([executadoPorMotoristaId, concluidoEm])
+  @@map("servicos")
+}
+
+model Ocorrencia {
+  id                   String         @id @default(uuid()) @db.Uuid
+  paradaId             String         @map("parada_id") @db.Uuid
+  servicoId            String?        @map("servico_id") @db.Uuid
+  motoristaId          String         @map("motorista_id") @db.Uuid
+  tipo                 TipoOcorrencia
+  descricao            String?
+  ocorrenciaAnteriorId String?        @map("ocorrencia_anterior_id") @db.Uuid
+  ocorridaEm           DateTime       @map("ocorrida_em") @db.Timestamptz(3)
+  registradaEm         DateTime       @default(now()) @map("registrada_em") @db.Timestamptz(3)
+
+  parada    Parada       @relation(fields: [paradaId], references: [id], onDelete: Restrict)
+  servico   Servico?     @relation(fields: [servicoId], references: [id], onDelete: Restrict)
+  motorista Motorista    @relation(fields: [motoristaId], references: [id], onDelete: Restrict)
+  anterior  Ocorrencia?  @relation("CorrecaoOcorrencia", fields: [ocorrenciaAnteriorId], references: [id], onDelete: Restrict)
+  correcoes Ocorrencia[] @relation("CorrecaoOcorrencia")
+
+  @@index([paradaId])
+  @@index([motoristaId, ocorridaEm])
+  @@map("ocorrencias")
+}
+
+// Histórico append-only: nunca atualizar nem apagar linhas no código.
+model RotaEvento {
+  id             String         @id @default(uuid()) @db.Uuid
+  rotaId         String         @map("rota_id") @db.Uuid
+  tipo           TipoEventoRota
+  statusAnterior String?        @map("status_anterior")
+  statusNovo     String?        @map("status_novo")
+  autorUsuarioId String?        @map("autor_usuario_id") @db.Uuid
+  dados          Json           @default("{}")
+  ocorridoEm     DateTime?      @map("ocorrido_em") @db.Timestamptz(3)
+  criadoEm       DateTime       @default(now()) @map("criado_em") @db.Timestamptz(3)
+
+  rota  Rota     @relation(fields: [rotaId], references: [id], onDelete: Cascade)
+  autor Usuario? @relation(fields: [autorUsuarioId], references: [id], onDelete: Restrict)
+
+  @@index([rotaId, criadoEm])
+  @@map("rota_eventos")
+}

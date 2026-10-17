@@ -30,23 +30,30 @@ Fora do escopo: regras de transição (`delivery-domain-rules`), formato dos lin
 
 ```
 apps/driver/
-├── app/
-│   ├── (publico)/login.tsx
-│   ├── (publico)/trocar-senha.tsx
-│   └── (app)/
-│       ├── _layout.tsx           # exige sessão
-│       ├── index.tsx             # início: resumo e rotas
-│       ├── rotas/[id].tsx        # detalhe e lista de paradas
-│       ├── paradas/[id].tsx      # execução da parada
-│       └── ocorrencia.tsx        # registrar ocorrência (modal)
 ├── src/
-│   ├── api/cliente.ts            # fetch + refresh + envelope de erro
+│   ├── app/                      # rotas do Expo Router (só telas e _layout)
+│   │   ├── _layout.tsx           # providers + Stack
+│   │   ├── (publico)/login.tsx
+│   │   ├── (publico)/trocar-senha.tsx
+│   │   └── (app)/
+│   │       ├── _layout.tsx       # exige sessão
+│   │       ├── index.tsx         # início: resumo e rotas
+│   │       ├── rotas/[id].tsx    # detalhe e lista de paradas
+│   │       ├── paradas/[id].tsx  # execução da parada
+│   │       └── ocorrencia.tsx    # registrar ocorrência (modal)
+│   ├── api/cliente.ts            # fetch + timeout + ErroApi (já existe); refresh entra com o login
 │   ├── api/consultas.ts          # hooks TanStack Query
 │   ├── fila/fila-comandos.ts     # fila persistida e reenvio
 │   ├── sessao/                   # SecureStore + estado de sessão
 │   └── componentes/
-└── app.config.ts                 # EXPO_PUBLIC_API_URL por ambiente
+├── app.json                      # nome, pacote Android, permissions: []
+└── .env.local                    # EXPO_PUBLIC_API_URL (não versionado)
 ```
+
+- Código que não é tela (componentes, hooks, utilitários) fica fora de `src/app/`.
+- Adicione pacotes com `pnpm exec expo install <pacote>` dentro de `apps/driver` (escolhe a versão compatível com o SDK). `pnpm exec expo install --check` confere as versões.
+- Pastas `android/` e `ios/` são geradas (Continuous Native Generation): nunca edite à mão; configure por `app.json` e config plugins. Biblioteca com código nativo exige build de desenvolvimento (não roda no Expo Go).
+- Antes de usar uma API do Expo, confira a documentação da versão do SDK instalada (`expo` no `package.json`): elas mudam a cada SDK.
 
 ## Telas e fluxo
 
@@ -101,7 +108,8 @@ Links `https://waze.com/ul?...` e `https://wa.me/...` abrem o app quando instala
 
 ## Permissões e configuração Android
 
-- MVP: apenas `INTERNET` (padrão). Revise `android.permissions` em `app.config.ts` e não deixe permissões que o app não usa — a Play Store exige justificativa para permissões sensíveis.
+- MVP: `android.permissions: []` em `app.json` (só as permissões mínimas). Não deixe permissões que o app não usa — a Play Store exige justificativa para permissões sensíveis.
+- `android.package` atual (`br.com.rotas.motorista`) é provisório: defina o definitivo antes do primeiro envio à Play Store, porque ele não pode ser trocado depois.
 - **Etapa 2 — notificações:** `expo-notifications`, permissão `POST_NOTIFICATIONS` (Android 13+) pedida após o login com explicação; token do dispositivo registrado na API.
 - **Etapa 2 — câmera/assinatura:** pedir câmera só ao abrir o comprovante; reencodar a imagem antes do envio (remove EXIF).
 - **Etapa 2 — localização:** primeiro em primeiro plano durante `EM_ANDAMENTO`. Segundo plano (`expo-location` + `expo-task-manager`) só com aprovação, aviso em destaque antes do pedido do sistema, serviço em primeiro plano com notificação persistente e declaração no Play Console. Parar a coleta ao concluir/cancelar a rota ou no logout.
@@ -128,7 +136,8 @@ Links `https://waze.com/ul?...` e `https://wa.me/...` abrem o app quando instala
 - [ ] Fluxo completo testado em emulador ou aparelho Android: login → confirmar → iniciar → cheguei → concluir serviço → rota concluída.
 - [ ] Modo avião durante a execução: ação fica na fila, é reenviada ao voltar a rede e não duplica no servidor.
 - [ ] Waze, Google Maps e WhatsApp abrem (ou mostram alerta) a partir de uma parada real de seed.
-- [ ] `app.config.ts` sem permissões não usadas.
+- [ ] `app.json` sem permissões não usadas.
+- [ ] `pnpm exec expo export --platform android` gera o bundle sem erro (confirma resolução do Metro no monorepo).
 - [ ] `pnpm --filter driver lint typecheck test` executados e passando (`testing-quality`).
 - [ ] Informe no resumo se o teste foi em emulador, aparelho ou não foi possível executar.
 

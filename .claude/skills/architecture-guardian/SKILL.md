@@ -46,13 +46,22 @@ rotas/
 │   └── shared/         # Zod schemas, enums, tipos inferidos, eventos, links externos
 ├── docs/
 │   ├── adr/            # decisões arquiteturais numeradas
+│   ├── ambiente.md
 │   └── skills-guide.md
+├── infra/postgres/     # scripts de inicialização do Postgres local
+├── .github/workflows/  # CI
 ├── .claude/skills/     # estas skills
-├── pnpm-workspace.yaml
-└── package.json        # scripts agregados: lint, typecheck, test, build
+├── docker-compose.yml  # só Postgres local
+├── pnpm-workspace.yaml # pacotes, catálogo de versões, allowBuilds
+└── package.json        # scripts agregados: dev, lint, typecheck, test, test:e2e, build
 ```
 
 Gerenciador: pnpm workspaces. Não adicione Turborepo, Nx ou Lerna até que o tempo de build justifique (registre em ADR).
+
+- Versões usadas por mais de um pacote (`typescript`, `zod`, `vitest`) ficam no `catalog:` do `pnpm-workspace.yaml`; os `package.json` referenciam `"catalog:"`.
+- TypeScript 6 em todo o workspace (as ferramentas ainda não suportam o TypeScript 7 nativo de forma uniforme).
+- Pacotes com script de instalação precisam de liberação explícita em `allowBuilds` (pnpm 11). Libere só o que for necessário.
+- `packages/shared` é ESM compilado para `dist/` (o `postinstall` da raiz compila; `pnpm dev` recompila em modo watch).
 
 ### Direção das dependências
 

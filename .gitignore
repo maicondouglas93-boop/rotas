@@ -1,0 +1,42 @@
+node_modules/
+dist/
+build/
+coverage/
+.turbo/
+*.tsbuildinfo
+
+# ambiente
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+
+# Expo / React Native
+.expo/
+android/
+ios/
+*.jks
+*.keystore
+*.p8
+*.p12
+*.mobileprovision
+
+# Prisma
+apps/api/src/generated/
+
+# sistema
+.DS_Store
+Thumbs.db
+*.log
+
+# Expo (gerados)
+expo-env.d.ts
+.metro-health-check*
+.kotlin/
+*.orig.*
+web-build/

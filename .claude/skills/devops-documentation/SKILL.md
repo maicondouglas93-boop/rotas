@@ -42,23 +42,24 @@ services:
       POSTGRES_PASSWORD: rotas_dev
       POSTGRES_DB: rotas
     ports: ["5432:5432"]
-    volumes: ["pgdata:/var/lib/postgresql/data"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro   # cria rotas_test
 volumes:
   pgdata:
 ```
 
-Sequência documentada no README:
+Sequência documentada no README (mantenha os dois em sincronia):
 
 ```bash
-pnpm install
-docker compose up -d postgres
-cp apps/api/.env.example apps/api/.env
-pnpm --filter api exec prisma migrate dev
-pnpm --filter api db:seed
-pnpm dev
+pnpm install            # postinstall compila packages/shared e gera o Prisma Client
+pnpm db:up
+cp apps/api/.env.example apps/api/.env   # e os demais .env*.example
+pnpm --filter api db:migrate
+pnpm dev                # API + painel; o app roda com pnpm dev:driver
 ```
 
-`pnpm dev` na raiz sobe API, painel e Metro em paralelo. Banco de teste separado (`rotas_test`) criado pelo script de teste.
+O banco de teste `rotas_test` é criado pelo script em `infra/postgres/init` na primeira subida do volume; se o volume já existia, crie-o manualmente ou recrie o volume.
 
 ## Variáveis de ambiente (referência inicial)
 
@@ -90,7 +91,8 @@ OpenAPI: servido em `/api/docs` só em local e homologação. A ferramenta de ge
 
 ## Logs e erros
 
-- Produção: logs JSON em uma linha, com `nivel`, `mensagem`, `requestId`, `usuarioId` (quando houver), `rota`, `status`, `duracaoMs`. Use `nestjs-pino` com `redact` configurado com a lista de `auth-security-lgpd` (justifique a dependência no PR), ou o logger JSON nativo do Nest se a versão instalada oferecer e a redação for garantida de outra forma.
+- Hoje: `ConsoleLogger` nativo do Nest com `json: true` em produção e nível por `LOG_LEVEL`; o filtro de exceções loga só método, rota, `requestId` e stack de erros 500 — nunca corpo, query ou cabeçalhos.
+- Quando for preciso log de cada requisição (`usuarioId`, `rota`, `status`, `duracaoMs`), adote `nestjs-pino` com `redact` configurado com a lista de `auth-security-lgpd` (justifique a dependência no PR).
 - `requestId`: lê `x-request-id` ou gera UUID; devolve no cabeçalho e no envelope de erro.
 - Erro 500: log com stack e `requestId`; cliente recebe só a mensagem genérica.
 - `app.enableShutdownHooks()` para encerrar conexões do Prisma e do Socket.IO no redeploy.

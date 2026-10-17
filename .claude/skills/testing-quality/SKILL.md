@@ -30,12 +30,12 @@ Fora do escopo: o que as regras devem ser (cada skill dona define); configuraç�
 
 | App | Unidade/integração | E2E |
 |---|---|---|
-| `apps/api` | Jest (padrão do Nest) + Supertest para HTTP | Supertest contra app Nest completo + Postgres |
-| `packages/shared` | Jest ou o runner já configurado no workspace | — |
-| `apps/admin` | Vitest + Testing Library (ou Jest, se já configurado — não misture os dois no mesmo app) | Playwright para fluxos críticos |
-| `apps/driver` | `jest-expo` + `@testing-library/react-native` | manual em emulador no MVP; automatizar (ex.: Maestro) só com ADR |
+| `apps/api` | Vitest (padrão do NestJS 12, `*.spec.ts`) | Vitest + Supertest contra o app Nest completo + Postgres (`*.e2e-spec.ts`, `vitest.config.e2e.ts`, `test/setup-e2e.ts`) |
+| `packages/shared` | Vitest (`*.test.ts`) | — |
+| `apps/admin` | Vitest + Testing Library em jsdom (`vitest.config.mts`) | Playwright para fluxos críticos (ainda não instalado) |
+| `apps/driver` | `jest-expo` + `@testing-library/react-native` 14 — `render` é assíncrono: `await render(...)` | manual em emulador no MVP; automatizar (ex.: Maestro) só com ADR |
 
-Use o que já estiver configurado no repositório. Não adicione runner novo se o existente resolve.
+Use o que já estiver configurado no repositório. Não adicione runner novo se o existente resolve. Com TypeScript 6 o `types` padrão é vazio: os tipos do runner precisam estar em `compilerOptions.types` (ex.: `"types": ["jest"]` no app).
 
 ## Organização
 
@@ -97,17 +97,17 @@ Compara os valores dos enums do Prisma com os de `packages/shared`; falha se div
 
 ## Comandos de verificação
 
-Ajuste aos scripts reais do `package.json`; os nomes abaixo são o padrão esperado:
+Scripts reais do `package.json` da raiz (o e2e precisa do Postgres local: `pnpm db:up`):
 
 ```bash
-pnpm -r lint
-pnpm -r typecheck
-pnpm --filter api test
-pnpm --filter api test:e2e
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm test:e2e
 pnpm --filter api exec prisma validate
-pnpm --filter admin test
-pnpm --filter driver test
 ```
+
+Por app: `pnpm --filter <api|admin|driver|@rotas/shared> <lint|typecheck|test>`.
 
 Para mudança limitada a um app, rode lint/typecheck/test desse app **e** de `packages/shared` se ele mudou (os outros apps dependem dele: rode o typecheck deles também).
 
@@ -129,7 +129,7 @@ Nunca escreva "todos os testes passam" sem ter a saída correspondente nesta con
 
 - Mockar o Prisma para testar regra de permissão (o bug costuma estar no `where`).
 - Testar só o caminho feliz de transições.
-- Teste que depende de horário real; use relógio controlado (`jest.useFakeTimers` ou injeção de `agora()`).
+- Teste que depende de horário real; use relógio controlado (`vi.useFakeTimers`/`jest.useFakeTimers` ou injeção de `agora()`).
 - Snapshots grandes de componentes como único teste de UI.
 - Rodar teste destrutivo contra banco remoto compartilhado.
 - Contar cobertura percentual como critério de qualidade; o critério é a tabela de testes obrigatórios.

@@ -106,6 +106,6 @@ Se duas skills parecerem dizer coisas diferentes, vale a tabela "Quem decide o q
 
 ## Estado atual
 
-- A pasta do projeto ainda não tem código do sistema; existem apenas as skills e este guia.
+- A estrutura inicial existe (ver `README.md`): monorepo, schema do banco do MVP, API com health check, painel e app com tela inicial. As funcionalidades ainda não foram implementadas. As skills já foram ajustadas às versões geradas (NestJS 12 com Vitest e oxlint, Prisma 7, Expo SDK 58 com rotas em `src/app/`).
 - Decisões ainda pendentes, que viram ADR quando forem tomadas: provedor de mapas e geocodificação; storage de fotos e assinaturas; geração do OpenAPI a partir do Zod; domínio de produção (afeta o cookie de sessão); estratégia de atualização OTA do app.
 - Sugestão: ao iniciar o código, criar um `CLAUDE.md` curto na raiz com as regras que devem valer sempre (stack, "regra de negócio só na API", "rode os testes antes de concluir") e um apontamento para este guia.

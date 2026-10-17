@@ -1,0 +1,17 @@
+import { Module, type MiddlewareConsumer, type NestModule } from '@nestjs/common';
+import { APP_FILTER } from '@nestjs/core';
+import { ExcecoesFilter } from './comum/filtros/excecoes.filter.js';
+import { requestIdMiddleware } from './comum/request-id.middleware.js';
+import { ConfigModule } from './config/config.module.js';
+import { SaudeModule } from './modulos/saude/saude.module.js';
+import { PrismaModule } from './prisma/prisma.module.js';
+
+@Module({
+  imports: [ConfigModule, PrismaModule, SaudeModule],
+  providers: [{ provide: APP_FILTER, useClass: ExcecoesFilter }],
+})
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(requestIdMiddleware).forRoutes('*');
+  }
+}
