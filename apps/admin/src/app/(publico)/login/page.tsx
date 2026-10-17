@@ -21,7 +21,7 @@ type Formulario = z.infer<typeof formularioSchema>;
 
 /** Só aceita voltar para caminhos internos do painel (evita redirecionamento aberto). */
 function destinoSeguro(volta: string | null): string {
-  return volta && volta.startsWith('/') && !volta.startsWith('//') ? volta : '/rotas';
+  return volta && volta.startsWith('/') && !volta.startsWith('//') ? volta : '/hoje';
 }
 
 function FormularioLogin() {

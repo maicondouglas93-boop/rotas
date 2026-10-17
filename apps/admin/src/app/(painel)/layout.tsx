@@ -1,6 +1,6 @@
 'use client';
 
-import { BuildingIcon, LogOutIcon, MenuIcon, RouteIcon, TruckIcon } from 'lucide-react';
+import { BuildingIcon, CalendarCheckIcon, LogOutIcon, MenuIcon, RouteIcon, TruckIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
@@ -14,6 +14,7 @@ import { TempoRealProvider } from '@/lib/tempo-real';
 import { cn } from '@/lib/utils';
 
 const NAVEGACAO = [
+  { href: '/hoje', rotulo: 'Hoje', icone: CalendarCheckIcon },
   { href: '/rotas', rotulo: 'Rotas', icone: RouteIcon },
   { href: '/empresas', rotulo: 'Empresas', icone: BuildingIcon },
   { href: '/motoristas', rotulo: 'Motoristas', icone: TruckIcon },

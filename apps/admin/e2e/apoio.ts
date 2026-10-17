@@ -11,7 +11,7 @@ export async function entrarComoAdmin(page: Page): Promise<void> {
   await page.getByLabel('E-mail', { exact: true }).fill(ADMIN_E2E.email);
   await page.getByLabel('Senha', { exact: true }).fill(ADMIN_E2E.senha);
   await page.getByRole('button', { name: 'Entrar' }).click();
-  await expect(page).toHaveURL(/\/rotas$/);
+  await expect(page).toHaveURL(/\/hoje$/);
 }
 
 export async function cadastrarEmpresa(page: Page, nome: string): Promise<void> {

@@ -22,9 +22,9 @@ test.describe('login do painel', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Empresas' })).toBeVisible();
   });
 
-  test('entra, mostra as rotas e sai', async ({ page }) => {
+  test('entra na visão do dia e sai', async ({ page }) => {
     await entrarComoAdmin(page);
-    await expect(page.getByRole('heading', { level: 1, name: 'Rotas' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Hoje' })).toBeVisible();
     await page.getByRole('button', { name: 'Sair' }).first().click();
     await expect(page).toHaveURL(/\/login/);
   });

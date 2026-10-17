@@ -14,3 +14,4 @@ export * from './schemas/rotas.js';
 export * from './schemas/execucao.js';
 export * from './dominio/rotulos.js';
 export * from './dominio/acoes.js';
+export * from './schemas/painel.js';

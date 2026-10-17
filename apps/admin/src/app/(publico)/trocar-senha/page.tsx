@@ -48,7 +48,7 @@ export default function PaginaTrocarSenha() {
       });
       await recarregarUsuario();
       toast.success('Senha alterada.');
-      router.replace('/rotas');
+      router.replace('/hoje');
     } catch (erro) {
       if (!aplicarErrosDaApi(erro, (caminho, msg) => form.setError(caminho as keyof Formulario, msg))) {
         setErroGeral(mensagemDeErro(erro));

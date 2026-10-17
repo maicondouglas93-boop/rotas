@@ -17,6 +17,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { BarraProgresso } from '@/components/comum/barra-progresso';
 import { LinksExternos } from '@/components/comum/links-externos';
 import { CabecalhoPagina, ConteudoPagina, ErroCarregamento, LinhasCarregando } from '@/components/comum/pagina';
 import { StatusBadge } from '@/components/comum/status-badge';
@@ -315,19 +316,7 @@ function ConteudoRota({ rota }: { rota: Rota }) {
           </p>
           <span className="text-sm font-semibold text-muted-foreground tabular-nums">{percentual}%</span>
         </div>
-        <div
-          role="progressbar"
-          aria-label="Paradas concluídas"
-          aria-valuemin={0}
-          aria-valuemax={rota.paradas.length}
-          aria-valuenow={concluidas}
-          className="h-2 overflow-hidden rounded-full bg-muted"
-        >
-          <div
-            className={cn('h-full rounded-full transition-[width]', percentual === 100 ? 'bg-sucesso' : 'bg-primary')}
-            style={{ width: `${percentual}%` }}
-          />
-        </div>
+        <BarraProgresso feitas={concluidas} total={rota.paradas.length} />
         <dl className="grid grid-cols-2 gap-4 border-t pt-4 sm:grid-cols-5">
           <Informacao rotulo="Motorista">{rota.motorista?.nome ?? 'Definir antes de enviar'}</Informacao>
           <Informacao rotulo="Enviada">{formatarDataHora(rota.enviadaEm)}</Informacao>

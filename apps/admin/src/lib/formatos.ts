@@ -35,3 +35,22 @@ export function formatarTelefone(e164: string | null): string {
 export function formatarCep(cep: string): string {
   return cep.length === 8 ? `${cep.slice(0, 5)}-${cep.slice(5)}` : cep;
 }
+
+const dataExtenso = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+
+/** `AAAA-MM-DD` → "Sexta-feira, 17 de outubro" (data sem hora: formatada em UTC para não mudar o dia). */
+export function formatarDataPorExtenso(data: string): string {
+  const texto = dataExtenso.format(new Date(`${data}T12:00:00Z`));
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
+/** Tempo decorrido em texto curto: "agora há pouco", "há 12 min", "há 2 h", "há 3 dias". */
+export function formatarHaQuanto(iso: string, agora: number): string {
+  const minutos = Math.floor((agora - new Date(iso).getTime()) / 60_000);
+  if (minutos < 1) return 'agora há pouco';
+  if (minutos < 60) return `há ${minutos} min`;
+  const horas = Math.floor(minutos / 60);
+  if (horas < 24) return `há ${horas} h`;
+  const dias = Math.floor(horas / 24);
+  return dias === 1 ? 'há 1 dia' : `há ${dias} dias`;
+}

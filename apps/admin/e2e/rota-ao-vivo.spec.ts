@@ -94,4 +94,16 @@ test('admin cadastra, monta e envia a rota e acompanha a execução do motorista
     await expect(historico).toContainText(`Outro · ${padaria}`);
     await expect(historico).toContainText(`Cliente ausente · ${padaria}`);
   });
+
+  await test.step('visão do dia mostra a rota concluída e as ocorrências', async () => {
+    await page.getByRole('link', { name: 'Hoje' }).click();
+    const rotasDeHoje = page.getByRole('region', { name: 'Rotas de hoje' });
+    const cartao = rotasDeHoje.getByRole('listitem').filter({ hasText: nomeRota });
+    await expect(cartao).toContainText('Concluída');
+    await expect(cartao).toContainText('2/2 paradas');
+    await expect(cartao).toContainText('2 ocorrências');
+    const doDia = page.getByRole('region', { name: 'Ocorrências de hoje' });
+    await expect(doDia).toContainText('“Portão fechado na chegada”');
+    await expect(doDia).toContainText('Entrega não realizada');
+  });
 });

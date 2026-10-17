@@ -10,6 +10,7 @@ import {
 import { useEffect, useState, type ReactNode } from 'react';
 import { io } from 'socket.io-client';
 import { obterAccessToken, ORIGEM_API, renovarSessao } from './api';
+import { chavesPainel } from './consultas/painel';
 import { chavesRotas } from './consultas/rotas';
 import { ContextoTempoReal, type EstadoConexao } from './estado-tempo-real';
 
@@ -57,7 +58,10 @@ export function TempoRealProvider({ children }: { children: ReactNode }) {
     socket.on('connect', () => {
       setEstado('ao-vivo');
       // Na reconexão, eventos podem ter sido perdidos: recarrega o que estiver na tela.
-      if (jaConectou) void queryClient.invalidateQueries({ queryKey: chavesRotas.todas });
+      if (jaConectou) {
+        void queryClient.invalidateQueries({ queryKey: chavesRotas.todas });
+        void queryClient.invalidateQueries({ queryKey: chavesPainel.hoje });
+      }
       jaConectou = true;
     });
     socket.on('disconnect', (motivo) => {
@@ -73,6 +77,7 @@ export function TempoRealProvider({ children }: { children: ReactNode }) {
       if (!NOMES_EVENTOS.has(evento) || !dados.success) return;
       void queryClient.invalidateQueries({ queryKey: chavesRotas.detalhe(dados.data.rotaId) });
       void queryClient.invalidateQueries({ queryKey: [...chavesRotas.todas, 'lista'] });
+      void queryClient.invalidateQueries({ queryKey: chavesPainel.hoje });
       const texto = ANUNCIO[evento as EventoTempoReal];
       if (texto) {
         const nome = queryClient.getQueryData<Rota>(chavesRotas.detalhe(dados.data.rotaId))?.nome;

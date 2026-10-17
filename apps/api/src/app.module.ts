@@ -7,6 +7,7 @@ import { AuthModule } from './modulos/auth/auth.module.js';
 import { EmpresasModule } from './modulos/empresas/empresas.module.js';
 import { ExecucaoModule } from './modulos/execucao/execucao.module.js';
 import { MotoristasModule } from './modulos/motoristas/motoristas.module.js';
+import { PainelModule } from './modulos/painel/painel.module.js';
 import { RotasModule } from './modulos/rotas/rotas.module.js';
 import { SaudeModule } from './modulos/saude/saude.module.js';
 import { TempoRealModule } from './modulos/tempo-real/tempo-real.module.js';
@@ -22,6 +23,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     MotoristasModule,
     RotasModule,
     ExecucaoModule,
+    PainelModule,
     TempoRealModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: ExcecoesFilter }],
