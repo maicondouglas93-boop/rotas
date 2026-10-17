@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { normalizeIp, ThrottlerModule } from '@nestjs/throttler';
 import { ENV, type Env } from '../../config/env.js';
+import { AcessoService } from './acesso.service.js';
 import { AutenticacaoGuard } from './autenticacao.guard.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
@@ -49,12 +50,13 @@ export function rastrearIpEEmail(req: Record<string, unknown>): string {
   ],
   controllers: [AuthController],
   providers: [
+    AcessoService,
     AuthService,
     SenhasService,
     TokensService,
     { provide: APP_GUARD, useClass: AutenticacaoGuard },
     { provide: APP_GUARD, useClass: PerfisGuard },
   ],
-  exports: [AuthService, SenhasService, TokensService],
+  exports: [AcessoService, AuthService, SenhasService, TokensService],
 })
 export class AuthModule {}

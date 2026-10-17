@@ -14,6 +14,7 @@ import {
 } from '@rotas/shared';
 import { z } from 'zod';
 import { json, requisitar } from '../api';
+import { intervaloAcompanhamento, useEstadoTempoReal } from '../estado-tempo-real';
 
 export interface FiltroListaRotas {
   busca?: string;
@@ -31,8 +32,6 @@ export const chavesRotas = {
   ocorrencias: (id: string) => ['rotas', id, 'ocorrencias'] as const,
 };
 
-// Sem tempo real ainda: rota em execução é recarregada a cada 20 s para o painel acompanhar o motorista.
-const INTERVALO_ACOMPANHAMENTO_MS = 20_000;
 const STATUS_EM_EXECUCAO: StatusRota[] = ['ENVIADA', 'RECEBIDA', 'EM_ANDAMENTO'];
 
 export function rotaEmExecucao(status: StatusRota | undefined): boolean {
@@ -55,28 +54,32 @@ export function useRotas(filtro: FiltroListaRotas) {
   });
 }
 
+/** Com o Socket.IO conectado, eventos invalidam a rota; sem ele, rota em execução recarrega a cada 30 s. */
 export function useRota(id: string) {
+  const conexao = useEstadoTempoReal();
   return useQuery({
     queryKey: chavesRotas.detalhe(id),
     queryFn: async () => rotaSchema.parse(await requisitar(`/rotas/${id}`)),
-    refetchInterval: (consulta) => (rotaEmExecucao(consulta.state.data?.status) ? INTERVALO_ACOMPANHAMENTO_MS : false),
+    refetchInterval: (consulta) => intervaloAcompanhamento(conexao, rotaEmExecucao(consulta.state.data?.status)),
   });
 }
 
 export function useHistoricoRota(id: string, emExecucao: boolean) {
+  const conexao = useEstadoTempoReal();
   return useQuery({
     queryKey: chavesRotas.historico(id),
     queryFn: async () => z.array(eventoRotaSchema).parse(await requisitar(`/rotas/${id}/historico`)),
-    refetchInterval: emExecucao ? INTERVALO_ACOMPANHAMENTO_MS : false,
+    refetchInterval: intervaloAcompanhamento(conexao, emExecucao),
   });
 }
 
 /** O que o motorista relatou em cada parada (motivo, descrição, quem e quando). */
 export function useOcorrenciasRota(id: string, emExecucao: boolean) {
+  const conexao = useEstadoTempoReal();
   return useQuery({
     queryKey: chavesRotas.ocorrencias(id),
     queryFn: async () => z.array(ocorrenciaRotaSchema).parse(await requisitar(`/rotas/${id}/ocorrencias`)),
-    refetchInterval: emExecucao ? INTERVALO_ACOMPANHAMENTO_MS : false,
+    refetchInterval: intervaloAcompanhamento(conexao, emExecucao),
   });
 }
 

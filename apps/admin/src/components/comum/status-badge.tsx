@@ -13,10 +13,10 @@ type Tom = 'neutro' | 'azul' | 'ambar' | 'verde' | 'vermelho' | 'riscado';
 // Cor nunca é a única informação: o selo sempre mostra o texto do status (mesmas cores do app).
 const TONS: Record<Tom, { selo: string; ponto: string }> = {
   neutro: { selo: 'bg-muted text-muted-foreground', ponto: 'bg-muted-foreground' },
-  azul: { selo: 'bg-[#e8f0fd] text-[#1453b8] dark:bg-sky-950 dark:text-sky-200', ponto: 'bg-[#1453b8] dark:bg-sky-300' },
-  ambar: { selo: 'bg-[#fef3dc] text-[#8a4b06] dark:bg-amber-950 dark:text-amber-200', ponto: 'bg-[#8a4b06] dark:bg-amber-300' },
-  verde: { selo: 'bg-[#e5f5eb] text-[#067647] dark:bg-emerald-950 dark:text-emerald-200', ponto: 'bg-[#067647] dark:bg-emerald-300' },
-  vermelho: { selo: 'bg-[#fdeceb] text-[#b42318] dark:bg-red-950 dark:text-red-200', ponto: 'bg-[#b42318] dark:bg-red-300' },
+  azul: { selo: 'bg-info-fundo text-info', ponto: 'bg-info' },
+  ambar: { selo: 'bg-alerta-fundo text-alerta', ponto: 'bg-alerta' },
+  verde: { selo: 'bg-sucesso-fundo text-sucesso', ponto: 'bg-sucesso' },
+  vermelho: { selo: 'bg-perigo-fundo text-destructive', ponto: 'bg-destructive' },
   riscado: { selo: 'bg-muted text-muted-foreground line-through decoration-1', ponto: 'bg-muted-foreground' },
 };
 

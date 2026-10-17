@@ -1,6 +1,13 @@
-import { formatarEndereco, STATUS_PARADA_TERMINAIS, type TipoEventoRota, type TipoServico } from '@rotas/shared';
+import {
+  EVENTO_TEMPO_REAL_DO_HISTORICO,
+  formatarEndereco,
+  STATUS_PARADA_TERMINAIS,
+  type TipoEventoRota,
+  type TipoServico,
+} from '@rotas/shared';
 import { ErroDominio } from '../../comum/erros/erro-dominio.js';
 import type { Prisma } from '../../generated/prisma/client.js';
+import { anotarEventoTempoReal } from '../tempo-real/coletor.js';
 import { rotaSelect, type RotaRegistro } from './rotas.mapper.js';
 
 // Operações de banco reutilizadas pelos services de rotas. Todas recebem o cliente da transação.
@@ -129,6 +136,16 @@ export async function registrarEvento(tx: Tx, evento: NovoEvento): Promise<void>
       dados: evento.dados ?? {},
       ocorridoEm: evento.ocorridoEm ?? null,
     },
+  });
+  // Publicado no Socket.IO só depois do commit (PublicarEventosInterceptor).
+  const dados = evento.dados ?? {};
+  const texto = (valor: unknown) => (typeof valor === 'string' ? valor : undefined);
+  const paradaId = texto(dados['paradaId']);
+  anotarEventoTempoReal({
+    rotaId: evento.rotaId,
+    evento: EVENTO_TEMPO_REAL_DO_HISTORICO[evento.tipo],
+    ...(paradaId ? { paradaId } : {}),
+    motoristaIds: [texto(dados['deMotoristaId']), texto(dados['paraMotoristaId'])].filter((id): id is string => !!id),
   });
 }
 

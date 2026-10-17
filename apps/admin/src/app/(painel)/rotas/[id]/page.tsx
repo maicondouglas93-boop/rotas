@@ -45,6 +45,7 @@ import {
   useRota,
   useTransferirRota,
 } from '@/lib/consultas/rotas';
+import { useEstadoTempoReal } from '@/lib/estado-tempo-real';
 import { formatarData, formatarDataHora, formatarHora } from '@/lib/formatos';
 import { cn } from '@/lib/utils';
 
@@ -63,12 +64,12 @@ function Informacao({ rotulo, children }: { rotulo: string; children: React.Reac
 function OcorrenciasParada({ parada, ocorrencias }: { parada: Parada; ocorrencias: OcorrenciaRota[] }) {
   if (ocorrencias.length === 0) return null;
   return (
-    <ul className="flex flex-col gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-2.5 text-sm">
+    <ul className="flex flex-col gap-2 rounded-md border border-alerta/25 bg-alerta-fundo p-2.5 text-sm">
       {ocorrencias.map((o) => {
         const servico = o.servicoId ? parada.servicos.find((s) => s.id === o.servicoId) : undefined;
         return (
           <li key={o.id} className="flex items-start gap-2">
-            <TriangleAlertIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-amber-700 dark:text-amber-400" />
+            <TriangleAlertIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-alerta" />
             <div className="flex min-w-0 flex-col gap-0.5">
               <span>
                 <span className="font-medium">{ROTULO_TIPO_OCORRENCIA[o.tipo]}</span>
@@ -93,7 +94,7 @@ function Marcador({ parada, atual }: { parada: Parada; atual: boolean }) {
   const base = 'relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold tabular-nums';
   if (parada.status === 'FINALIZADA') {
     return (
-      <span className={cn(base, 'border-[#067647] bg-[#067647] text-white')}>
+      <span className={cn(base, 'border-sucesso bg-sucesso text-white dark:text-background')}>
         <CheckIcon className="size-4" aria-label="Finalizada" />
       </span>
     );
@@ -134,7 +135,7 @@ function LinhaParada({
       {!ultima ? (
         <span
           aria-hidden
-          className={cn('absolute top-10 bottom-0 left-[15px] w-0.5 rounded-full', encerrada ? 'bg-[#067647]' : 'bg-border')}
+          className={cn('absolute top-10 bottom-0 left-[15px] w-0.5 rounded-full', encerrada ? 'bg-sucesso' : 'bg-border')}
         />
       ) : null}
       <div className="pt-3">
@@ -163,7 +164,7 @@ function LinhaParada({
             ))}
           </div>
           {parada.observacoes ? (
-            <p className="rounded-md bg-[#fef3dc] px-2.5 py-1.5 text-sm font-medium text-[#8a4b06] dark:bg-amber-950 dark:text-amber-200">
+            <p className="rounded-md bg-alerta-fundo px-2.5 py-1.5 text-sm font-medium text-alerta">
               Obs.: {parada.observacoes}
             </p>
           ) : null}
@@ -250,6 +251,7 @@ function ConteudoRota({ rota }: { rota: Rota }) {
   const concluidas = rota.paradas.filter((p) => p.status === 'FINALIZADA' || p.status === 'CANCELADA').length;
   const percentual = rota.paradas.length > 0 ? Math.round((concluidas / rota.paradas.length) * 100) : 0;
   const emExecucao = rotaEmExecucao(rota.status);
+  const conexao = useEstadoTempoReal();
   // Mesma regra do app: parada em curso, senão a primeira pendente.
   const proxima =
     rota.status === 'EM_ANDAMENTO'
@@ -322,7 +324,7 @@ function ConteudoRota({ rota }: { rota: Rota }) {
           className="h-2 overflow-hidden rounded-full bg-muted"
         >
           <div
-            className={cn('h-full rounded-full transition-[width]', percentual === 100 ? 'bg-[#067647]' : 'bg-primary')}
+            className={cn('h-full rounded-full transition-[width]', percentual === 100 ? 'bg-sucesso' : 'bg-primary')}
             style={{ width: `${percentual}%` }}
           />
         </div>
@@ -345,10 +347,17 @@ function ConteudoRota({ rota }: { rota: Rota }) {
               Paradas
             </h2>
             {emExecucao ? (
-              <span className="flex items-center gap-1.5 text-xs text-muted-foreground" title="Atualiza sozinho a cada 20 segundos">
-                <span aria-hidden className="size-2 animate-pulse rounded-full bg-emerald-500" />
-                Acompanhando
-              </span>
+              conexao === 'ao-vivo' ? (
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span aria-hidden className="size-2 animate-pulse rounded-full bg-emerald-500" />
+                  Ao vivo
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span aria-hidden className="size-2 rounded-full bg-amber-500" />
+                  Atualizando a cada 30 s
+                </span>
+              )
             ) : null}
           </div>
           {rota.paradas.length === 0 ? (

@@ -15,6 +15,8 @@ export interface PayloadAccessToken {
   perfil: PerfilUsuario;
   mid?: string;
   sid: string;
+  /** Expiração (segundos desde a época), preenchida pelo JWT ao assinar. */
+  exp?: number;
 }
 
 declare global {

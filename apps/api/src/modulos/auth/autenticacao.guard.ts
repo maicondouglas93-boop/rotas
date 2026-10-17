@@ -2,16 +2,14 @@ import { Injectable, type CanActivate, type ExecutionContext } from '@nestjs/com
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 import { ErroDominio } from '../../comum/erros/erro-dominio.js';
-import { PrismaService } from '../../prisma/prisma.service.js';
 import { CHAVE_PERMITIR_SENHA_TEMPORARIA, CHAVE_PUBLICO } from './decoradores.js';
-import { TokensService } from './tokens.service.js';
+import { AcessoService } from './acesso.service.js';
 
 @Injectable()
 export class AutenticacaoGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    private readonly tokens: TokensService,
-    private readonly prisma: PrismaService,
+    private readonly acesso: AcessoService,
   ) {}
 
   async canActivate(contexto: ExecutionContext): Promise<boolean> {
@@ -29,47 +27,9 @@ export class AutenticacaoGuard implements CanActivate {
       throw ErroDominio.naoAutenticado();
     }
 
-    const payload = await this.tokens.verificarAccessToken(token);
-    const agora = new Date();
+    const { usuario, deveTrocarSenha } = await this.acesso.validar(token);
 
-    // Consulta única para validar que o usuário segue ativo e a família da sessão não foi revogada.
-    const usuario = await this.prisma.usuario.findFirst({
-      where: {
-        id: payload.sub,
-        ativo: true,
-        sessoes: {
-          some: {
-            familiaId: payload.sid,
-            revogadaEm: null,
-            expiraEm: { gt: agora },
-          },
-        },
-      },
-      select: {
-        id: true,
-        perfil: true,
-        deveTrocarSenha: true,
-        motorista: {
-          select: {
-            id: true,
-            desativadoEm: true,
-          },
-        },
-      },
-    });
-
-    if (!usuario) {
-      throw ErroDominio.naoAutenticado();
-    }
-
-    if (
-      usuario.perfil === 'MOTORISTA' &&
-      (!usuario.motorista || usuario.motorista.desativadoEm !== null)
-    ) {
-      throw ErroDominio.naoAutenticado();
-    }
-
-    if (usuario.deveTrocarSenha) {
+    if (deveTrocarSenha) {
       const permitirTemporaria = this.reflector.getAllAndOverride<boolean>(
         CHAVE_PERMITIR_SENHA_TEMPORARIA,
         [contexto.getHandler(), contexto.getClass()],
@@ -79,12 +39,7 @@ export class AutenticacaoGuard implements CanActivate {
       }
     }
 
-    req.usuario = {
-      usuarioId: usuario.id,
-      perfil: usuario.perfil,
-      motoristaId: usuario.motorista?.id ?? null,
-      sessaoId: payload.sid,
-    };
+    req.usuario = usuario;
 
     return true;
   }

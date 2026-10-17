@@ -39,8 +39,11 @@ describe('TokensService', () => {
       sub: USUARIO_ID,
       perfil: 'ADMIN',
       sid: FAMILIA_ID,
+      exp: expect.any(Number),
     });
     expect(payload.mid).toBeUndefined();
+    // `exp` (usado para derrubar o socket quando o token vence) bate com a validade devolvida.
+    expect(Math.abs(payload.exp! * 1000 - new Date(emitido.expiraEm).getTime())).toBeLessThanOrEqual(1000);
   });
 
   it('inclui mid quando o usuário é MOTORISTA', async () => {
@@ -57,6 +60,7 @@ describe('TokensService', () => {
       perfil: 'MOTORISTA',
       mid: MOTORISTA_ID,
       sid: FAMILIA_ID,
+      exp: expect.any(Number),
     });
   });
 

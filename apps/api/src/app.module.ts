@@ -9,10 +9,21 @@ import { ExecucaoModule } from './modulos/execucao/execucao.module.js';
 import { MotoristasModule } from './modulos/motoristas/motoristas.module.js';
 import { RotasModule } from './modulos/rotas/rotas.module.js';
 import { SaudeModule } from './modulos/saude/saude.module.js';
+import { TempoRealModule } from './modulos/tempo-real/tempo-real.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
 @Module({
-  imports: [ConfigModule, PrismaModule, AuthModule, SaudeModule, EmpresasModule, MotoristasModule, RotasModule, ExecucaoModule],
+  imports: [
+    ConfigModule,
+    PrismaModule,
+    AuthModule,
+    SaudeModule,
+    EmpresasModule,
+    MotoristasModule,
+    RotasModule,
+    ExecucaoModule,
+    TempoRealModule,
+  ],
   providers: [{ provide: APP_FILTER, useClass: ExcecoesFilter }],
 })
 export class AppModule implements NestModule {

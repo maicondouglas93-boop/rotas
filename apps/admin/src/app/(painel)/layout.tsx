@@ -8,7 +8,9 @@ import { StatusApi } from '@/components/comum/status-api';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useEstadoTempoReal } from '@/lib/estado-tempo-real';
 import { useSessao } from '@/lib/sessao';
+import { TempoRealProvider } from '@/lib/tempo-real';
 import { cn } from '@/lib/utils';
 
 const NAVEGACAO = [
@@ -29,6 +31,23 @@ function Marca() {
         <span className="text-xs text-white/70">Painel de gestão</span>
       </span>
     </div>
+  );
+}
+
+/** Estado da conexão em tempo real com a API (Socket.IO). */
+function IndicadorTempoReal() {
+  const estado = useEstadoTempoReal();
+  const [texto, cor] =
+    estado === 'ao-vivo'
+      ? ['Ao vivo', 'bg-emerald-400']
+      : estado === 'reconectando'
+        ? ['Reconectando…', 'bg-amber-400']
+        : ['Conectando…', 'bg-white/50'];
+  return (
+    <p className="flex items-center gap-2 text-xs" role="status">
+      <span aria-hidden className={cn('size-2 rounded-full', cor, estado === 'ao-vivo' && 'animate-pulse')} />
+      {texto}
+    </p>
   );
 }
 
@@ -94,7 +113,8 @@ export default function LayoutPainel({ children }: { children: ReactNode }) {
 
   const rodape = (
     <div className="flex flex-col gap-3 border-t border-sidebar-border pt-3">
-      <div className="px-1 text-xs text-white/80 [&_p]:text-xs">
+      <div className="flex flex-col gap-1.5 px-1 text-xs text-white/80 [&_p]:text-xs">
+        <IndicadorTempoReal />
         <StatusApi />
       </div>
       <div className="flex items-center justify-between gap-2 rounded-lg bg-white/8 px-2 py-1.5">
@@ -120,40 +140,45 @@ export default function LayoutPainel({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="gradiente-marca sticky top-0 hidden h-screen w-60 shrink-0 flex-col justify-between p-3 text-sidebar-foreground md:flex">
-        <div className="flex flex-col gap-6 pt-1">
-          <Marca />
-          <Navegacao />
-        </div>
-        {rodape}
-      </aside>
+    <TempoRealProvider>
+      <div className="flex min-h-screen">
+        <aside className="gradiente-marca sticky top-0 hidden h-screen w-60 shrink-0 flex-col justify-between p-3 text-sidebar-foreground md:flex">
+          <div className="flex flex-col gap-6 pt-1">
+            <Marca />
+            <Navegacao />
+          </div>
+          {rodape}
+        </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="gradiente-marca flex h-14 items-center gap-2 px-3 text-white md:hidden">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => setMenuAberto(true)}
-            aria-label="Abrir menu"
-            className="text-white hover:bg-white/15 hover:text-white"
-          >
-            <MenuIcon />
-          </Button>
-          <span className="text-sm font-bold tracking-tight">Rotas · Painel</span>
-        </header>
-        <Sheet open={menuAberto} onOpenChange={setMenuAberto}>
-          <SheetContent side="left" className="gradiente-marca flex w-64 flex-col justify-between border-none p-3 text-sidebar-foreground">
-            <div className="flex flex-col gap-6 pt-1">
-              <SheetTitle className="sr-only">Menu</SheetTitle>
-              <Marca />
-              <Navegacao aoNavegar={() => setMenuAberto(false)} />
-            </div>
-            {rodape}
-          </SheetContent>
-        </Sheet>
-        <main className="flex-1">{children}</main>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header className="gradiente-marca flex h-14 items-center gap-2 px-3 text-white md:hidden">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => setMenuAberto(true)}
+              aria-label="Abrir menu"
+              className="text-white hover:bg-white/15 hover:text-white"
+            >
+              <MenuIcon />
+            </Button>
+            <span className="text-sm font-bold tracking-tight">Rotas · Painel</span>
+            <span className="ml-auto text-white/85">
+              <IndicadorTempoReal />
+            </span>
+          </header>
+          <Sheet open={menuAberto} onOpenChange={setMenuAberto}>
+            <SheetContent side="left" className="gradiente-marca flex w-64 flex-col justify-between border-none p-3 text-sidebar-foreground">
+              <div className="flex flex-col gap-6 pt-1">
+                <SheetTitle className="sr-only">Menu</SheetTitle>
+                <Marca />
+                <Navegacao aoNavegar={() => setMenuAberto(false)} />
+              </div>
+              {rodape}
+            </SheetContent>
+          </Sheet>
+          <main className="flex-1">{children}</main>
+        </div>
       </div>
-    </div>
+    </TempoRealProvider>
   );
 }

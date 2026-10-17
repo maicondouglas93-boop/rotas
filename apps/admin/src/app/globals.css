@@ -27,6 +27,13 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-sucesso: var(--sucesso);
+  --color-sucesso-fundo: var(--sucesso-fundo);
+  --color-alerta: var(--alerta);
+  --color-alerta-fundo: var(--alerta-fundo);
+  --color-info: var(--info);
+  --color-info-fundo: var(--info-fundo);
+  --color-perigo-fundo: var(--perigo-fundo);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -65,6 +72,14 @@
   --accent: #e4f0f5;
   --accent-foreground: #05344a;
   --destructive: #b42318;
+  /* Cores de status (as mesmas do app): texto sobre o fundo correspondente. */
+  --sucesso: #067647;
+  --sucesso-fundo: #e5f5eb;
+  --alerta: #8a4b06;
+  --alerta-fundo: #fef3dc;
+  --info: #1453b8;
+  --info-fundo: #e8f0fd;
+  --perigo-fundo: #fdeceb;
   --border: #e1e6ed;
   --input: #d5dce5;
   --ring: #3d8fab;
@@ -100,6 +115,13 @@
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
+  --sucesso: oklch(0.85 0.13 160);
+  --sucesso-fundo: oklch(0.3 0.06 160);
+  --alerta: oklch(0.87 0.12 85);
+  --alerta-fundo: oklch(0.32 0.06 70);
+  --info: oklch(0.85 0.09 240);
+  --info-fundo: oklch(0.3 0.07 250);
+  --perigo-fundo: oklch(0.3 0.08 25);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);

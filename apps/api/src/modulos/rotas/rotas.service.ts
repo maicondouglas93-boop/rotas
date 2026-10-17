@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import {
+  EventoTempoReal,
   type CriarRotaEntrada,
   type DuplicarRotaEntrada,
   type EventoRota,
@@ -14,6 +15,7 @@ import { ErroDominio } from '../../comum/erros/erro-dominio.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import type { UsuarioAutenticado } from '../auth/tipos.js';
+import { anotarEventoTempoReal } from '../tempo-real/coletor.js';
 import { transicaoRota } from './dominio/transicoes.js';
 import {
   carregarEmpresasParaParadas,
@@ -127,6 +129,8 @@ export class RotasService {
       const resultado = transicaoRota(rota.status, 'EXCLUIR', 'ADMIN');
       if (!resultado.ok) throw ErroDominio.transicaoInvalida(resultado.motivo);
       await tx.rota.delete({ where: { id } });
+      // O histórico some junto com o rascunho: o aviso em tempo real é anotado à parte.
+      anotarEventoTempoReal({ rotaId: id, evento: EventoTempoReal.ROTA_EXCLUIDA, motoristaIds: [] });
     });
   }
 

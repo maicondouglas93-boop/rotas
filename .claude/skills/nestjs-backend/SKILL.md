@@ -171,6 +171,7 @@ Grave e devolva em UTC, formato ISO 8601. Campos só de data (ex.: `dataPrevista
 - Salas: `admin`, `motorista:<motoristaId>`, `rota:<rotaId>`. Quem entra em qual sala é decidido pelo servidor (regras em `auth-security-lgpd`).
 - Nomes de eventos vêm de `packages/shared/src/eventos.ts`.
 - Payload exemplo: `{ rotaId, paradaId, status, versao }`.
+- Já existe (`src/modulos/tempo-real/`): gateway com autenticação no handshake (`AcessoService`, o mesmo do guard HTTP) e queda da conexão quando o token vence; `registrarEvento` anota o evento do histórico e o `PublicarEventosInterceptor` publica só quando a requisição termina bem (depois do commit), com `status` e `versao` atuais da rota, para `admin` e para o motorista dono (e o anterior, na transferência). Mudança sem `RotaEvento` (ex.: exclusão do rascunho) chama `anotarEventoTempoReal` dentro da transação. Novo tipo de `RotaEvento` precisa de entrada em `EVENTO_TEMPO_REAL_DO_HISTORICO` (`packages/shared/src/eventos.ts`).
 
 ## Erros a evitar
 

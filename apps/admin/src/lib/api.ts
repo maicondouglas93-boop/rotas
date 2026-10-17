@@ -1,6 +1,8 @@
 import { ErroApi, sessaoSchema, type Sessao } from '@rotas/shared';
 
 const URL_API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+/** Origem da API (sem o prefixo /api/v1): o Socket.IO atende na raiz do mesmo servidor. */
+export const ORIGEM_API = new URL(URL_API).origin;
 const TRAVA_RENOVACAO = 'rotas-renovar-sessao';
 
 // Access token só em memória (auth-security-lgpd). O refresh fica no cookie HttpOnly da API.
@@ -10,6 +12,11 @@ const aoPerderSessao = new Set<() => void>();
 
 export function definirAccessToken(token: string | null): void {
   accessToken = token;
+}
+
+/** Token atual para o handshake do Socket.IO (lido a cada tentativa de conexão). */
+export function obterAccessToken(): string | null {
+  return accessToken;
 }
 
 /** Avisa a interface quando a sessão acabou de vez (refresh recusado). */

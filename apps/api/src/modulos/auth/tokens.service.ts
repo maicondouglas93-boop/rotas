@@ -12,6 +12,7 @@ const payloadAccessTokenSchema = z.object({
   perfil: perfilUsuarioSchema,
   mid: z.uuid().optional(),
   sid: z.uuid(),
+  exp: z.number().int().optional(),
 });
 
 export interface DadosEmissaoAccessToken {

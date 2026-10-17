@@ -53,7 +53,7 @@ apps/admin/src/
 
 Páginas autenticadas são componentes cliente com TanStack Query (o access token está em memória, ver `auth-security-lgpd`). Não use Server Actions nem Route Handlers para regra de negócio.
 
-Já existe: `lib/api.ts` (token em memória, renovação em voo único com Web Locks, nova tentativa após 401), `lib/sessao.tsx` (`useSessao`), `lib/consultas/{empresas,motoristas,rotas}.ts`, `lib/filtros-url.ts`, `components/comum/` (`CabecalhoPagina`, `ConteudoPagina`, `Vazio`, `ErroCarregamento`, `LinhasCarregando`, `Paginacao`, `StatusBadge`, `CampoBusca`, `LinksExternos`) e `components/rotas/montagem-rota.tsx`. Os componentes do shadcn usam Base UI: gatilhos recebem `render={<Button />}` (não `asChild`). `cacheComponents`/`partialPrefetching` do Next ficam desligados (painel todo no cliente). O mapa da montagem espera o ADR do provedor (`maps-route-planning`). Visual: cores da marca em `app/globals.css` (as mesmas do app, `apps/driver/src/componentes/tema.ts`); cartões com a utilidade `superficie`, barra lateral e telas públicas com `gradiente-marca`; login e trocar senha usam `components/comum/moldura-publica.tsx`; `StatusBadge` em pílula com ponto. Detalhe da rota: ocorrências do motorista vêm de `GET /rotas/:id/ocorrencias` (`useOcorrenciasRota`, fora de `rotaSchema` para não quebrar o app); enquanto a rota está `ENVIADA`/`RECEBIDA`/`EM_ANDAMENTO`, detalhe, histórico e ocorrências recarregam a cada 20 s (`rotaEmExecucao`) até existir o tempo real.
+Já existe: `lib/api.ts` (token em memória, renovação em voo único com Web Locks, nova tentativa após 401), `lib/sessao.tsx` (`useSessao`), `lib/consultas/{empresas,motoristas,rotas}.ts`, `lib/filtros-url.ts`, `components/comum/` (`CabecalhoPagina`, `ConteudoPagina`, `Vazio`, `ErroCarregamento`, `LinhasCarregando`, `Paginacao`, `StatusBadge`, `CampoBusca`, `LinksExternos`) e `components/rotas/montagem-rota.tsx`. Os componentes do shadcn usam Base UI: gatilhos recebem `render={<Button />}` (não `asChild`). `cacheComponents`/`partialPrefetching` do Next ficam desligados (painel todo no cliente). O mapa da montagem espera o ADR do provedor (`maps-route-planning`). Visual: cores da marca em `app/globals.css` (as mesmas do app, `apps/driver/src/componentes/tema.ts`); cartões com a utilidade `superficie`, barra lateral e telas públicas com `gradiente-marca`; login e trocar senha usam `components/comum/moldura-publica.tsx`; `StatusBadge` em pílula com ponto. Detalhe da rota: ocorrências do motorista vêm de `GET /rotas/:id/ocorrencias` (`useOcorrenciasRota`, fora de `rotaSchema` para não quebrar o app); com o Socket.IO conectado não há polling; sem ele, rota `ENVIADA`/`RECEBIDA`/`EM_ANDAMENTO` recarrega detalhe, histórico e ocorrências a cada 30 s.
 
 ## Padrões
 
@@ -108,7 +108,7 @@ Layout em duas colunas no desktop (lista à esquerda, mapa à direita); no celul
 
 ## Acompanhamento em tempo real
 
-- Conecta o socket após o login; em evento, invalida a consulta afetada (não aplica payload como estado final).
+- Conecta o socket após o login; em evento, invalida a consulta afetada (não aplica payload como estado final). Já existe: `lib/tempo-real.tsx` (`TempoRealProvider` no layout do painel: token no handshake, renova a sessão e reconecta quando o servidor derruba por token vencido, invalida `['rotas', id]` e a lista, anuncia em `aria-live`) e `lib/estado-tempo-real.ts` (`useEstadoTempoReal`, `intervaloAcompanhamento` para o refetch de 30 s sem conexão).
 - Indicador de conexão no cabeçalho ("Ao vivo" / "Reconectando…"); desconectado → refetch a cada 30 s até reconectar.
 - Cada rota mostra: motorista, início, paradas feitas/pendentes, ocorrências (destaque), conclusão, "atualizado há X min".
 - Novidades anunciadas em região `aria-live="polite"` resumida ("Parada 3 de Rota Centro finalizada").
@@ -116,12 +116,12 @@ Layout em duas colunas no desktop (lista à esquerda, mapa à direita); no celul
 ## Direção visual (evitar aparência de template gerado)
 
 - Paleta neutra + **uma** cor de destaque para ações primárias; cores de status reservadas para status.
-- Sem gradientes decorativos, glassmorphism, emojis como ícones, ilustrações genéricas ou cartões de KPI como página inicial. A página inicial é operacional: rotas de hoje, pendências e ocorrências abertas.
+- Gradiente só na marca, igual ao app do motorista: barra lateral e telas sem login (`gradiente-marca`). Nada de gradiente no conteúdo, glassmorphism, emojis como ícones, ilustrações genéricas ou cartões de KPI como página inicial. A página inicial é operacional: rotas de hoje, pendências e ocorrências abertas.
 - Ícones `lucide-react` só quando acrescentam significado (ex.: telefone, mapa), sempre com texto ou `aria-label`.
-- Escala tipográfica curta: título de página `text-xl font-semibold`, corpo e tabelas `text-sm`, metadados `text-xs text-muted-foreground`.
+- Escala tipográfica curta: título de página `text-2xl font-bold tracking-tight`, corpo e tabelas `text-sm`, metadados `text-xs text-muted-foreground`.
 - Espaçamento por escala do Tailwind (múltiplos de 4); páginas com largura máxima e alinhamento consistente; cabeçalho de página sempre com título, descrição curta opcional e ação primária à direita.
 - Microtexto específico do domínio: "Nenhuma rota para hoje. Criar rota" em vez de "Nenhum dado encontrado".
-- Tokens de tema definidos uma vez em `globals.css` (variáveis do shadcn); nenhum hex solto nos componentes.
+- Tokens de tema definidos uma vez em `globals.css` (variáveis do shadcn + status `sucesso`, `alerta`, `info`, `perigo-fundo`); nenhum hex solto nos componentes. Cartões com a utilidade `superficie`.
 
 ## Acessibilidade
 
