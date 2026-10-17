@@ -74,6 +74,7 @@ No emulador Android a API é acessada por `10.0.2.2`; em aparelho físico, troqu
 | `pnpm typecheck` | verificação de tipos de todos os pacotes |
 | `pnpm test` | testes unitários de todos os pacotes |
 | `pnpm test:e2e` | testes de integração da API contra o banco `rotas_test` |
+| `pnpm test:e2e:painel` | testes E2E do painel no navegador (Playwright): sobe API e painel próprios nas portas 4100/3100, zera o `rotas_test` e cria um admin de teste. Na primeira vez: `pnpm --filter admin exec playwright install chromium` |
 | `pnpm build` | build de produção (shared, API, painel) |
 | `pnpm db:up` / `pnpm db:down` | sobe/derruba o PostgreSQL local |
 | `pnpm --filter api db:migrate` | cria/aplica migrations em desenvolvimento |

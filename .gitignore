@@ -43,3 +43,9 @@ web-build/
 
 # Configuração pessoal do Claude Code (permissões locais)
 .claude/settings.local.json
+
+# Testes E2E do painel (Playwright)
+dist-e2e/
+.next-e2e/
+playwright-report/
+test-results/

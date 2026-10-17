@@ -32,7 +32,7 @@ Fora do escopo: o que as regras devem ser (cada skill dona define); configuraç�
 |---|---|---|
 | `apps/api` | Vitest (padrão do NestJS 12, `*.spec.ts`) | Vitest + Supertest contra o app Nest completo + Postgres (`*.e2e-spec.ts`, `vitest.config.e2e.ts`, `test/setup-e2e.ts`) |
 | `packages/shared` | Vitest (`*.test.ts`) | — |
-| `apps/admin` | Vitest + Testing Library em jsdom (`vitest.config.mts`) | Playwright para fluxos críticos (ainda não instalado) |
+| `apps/admin` | Vitest + Testing Library em jsdom (`vitest.config.mts`) | Playwright (`apps/admin/e2e`, `playwright.config.ts`, `pnpm test:e2e:painel`): API e painel compilados nas portas 4100/3100 sobre o `rotas_test`, zerado no `globalSetup` com só o admin do seed; ações do motorista entram pela API (`e2e/apoio.ts`) |
 | `apps/driver` | `jest-expo` + `@testing-library/react-native` 14 — `render` é assíncrono: `await render(...)` | manual em emulador no MVP; automatizar (ex.: Maestro) só com ADR |
 
 Use o que já estiver configurado no repositório. Não adicione runner novo se o existente resolve. Com TypeScript 6 o `types` padrão é vazio: os tipos do runner precisam estar em `compilerOptions.types` (ex.: `"types": ["jest"]` no app).
@@ -120,7 +120,7 @@ Verificações executadas:
 - pnpm --filter api test ............ 48 passaram, 0 falharam
 - pnpm --filter api test:e2e ........ 1 falhou (rotas.e2e-spec.ts: transferir) — corrigido, 0 falharam na 2ª execução
 Não executado:
-- E2E do painel (Playwright não instalado neste ambiente)
+- E2E do painel (navegador do Playwright não instalado neste ambiente)
 ```
 
 Nunca escreva "todos os testes passam" sem ter a saída correspondente nesta conversa.

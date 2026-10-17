@@ -12,7 +12,7 @@ concurrency:
 jobs:
   verificar:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     services:
       postgres:
@@ -70,6 +70,22 @@ jobs:
 
       - name: Testes de integração da API
         run: pnpm test:e2e
+
+      - name: Navegador dos testes do painel
+        run: pnpm --filter admin exec playwright install --with-deps chromium
+
+      - name: Testes E2E do painel (Playwright)
+        run: pnpm test:e2e:painel
+
+      - name: Relatório do Playwright
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-playwright
+          path: |
+            apps/admin/playwright-report
+            apps/admin/test-results
+          retention-days: 7
 
       - name: Build
         run: pnpm --filter @rotas/shared --filter api --filter admin build

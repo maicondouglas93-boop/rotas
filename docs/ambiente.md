@@ -26,6 +26,8 @@ Validadas na inicialização por `src/config/env.ts`: a API não sobe se faltar 
 
 `apps/api/.env.test` (testes e2e) usa o banco `rotas_test`; o setup dos testes recusa qualquer host que não seja local.
 
+Os testes do painel (`pnpm test:e2e:painel`) usam o mesmo `rotas_test`: compilam a API em `apps/api/dist-e2e` e o painel em `apps/admin/.next-e2e` e sobem nas portas 4100 e 3100, sem mexer nos servidores de desenvolvimento (4000 e 3000). A limpeza (`pnpm --filter api db:limpar-teste`) recusa banco que não seja local e com `test` no nome.
+
 ## Painel (`apps/admin`)
 
 Variáveis `NEXT_PUBLIC_*` são embutidas no JavaScript enviado ao navegador: nunca coloque segredos nelas.
